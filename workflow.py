@@ -4,7 +4,7 @@ import math
 from glob import glob
 import io
 
-project_name = "coastseq"
+project_name = "COSQ"
 
 gwf = Workflow(defaults={"account": "edna"}) 
 
@@ -139,7 +139,7 @@ gwf.target(
             echo "HELA is done."
         """.format(output=output, project_name=project_name) 
 
-#Using Mjolnir pipeline to perform OTU clustering and denoising. Run separately, as DnoisE was not compatible with the "mjolnir" conda environment.
+#Using Mjolnir pipeline to perform OTU clustering and denoising. Run separately, as DnoisE was not compatible with the "mjolnir" conda environment. The SWARM clustering itself was done by Owen Wangensteen at UiT, producing the four commented output files below.
  
 input_files = []
 
@@ -148,12 +148,12 @@ input_files.append("tmp/{}.vsearch.fasta".format(project_name))
 
 output_files = []
  
-output_files.append("results/{}.SWARM_seeds.fasta".format(project_name))
-output_files.append("results/{}.SWARM13nc_stats".format(project_name))
-output_files.append("results/{}.SWARM_output".format(project_name))
+#output_files.append("results/{}_SWARM_seeds.fasta".format(project_name))
+#output_files.append("results/{}_SWARM13nc_stats".format(project_name))
+#output_files.append("results/{}_SWARM_output".format(project_name))
+#output_files.append("results/{}_non_singleton_motu_list.txt".format(project_name))
 output_files.append("results/{}.SWARM_output.counts.csv".format(project_name))
 output_files.append("results/{}.SWARM_output.ESV.csv".format(project_name))
-output_files.append("results/{}_non_singleton_motu_list.txt".format(project_name))
 
 gwf.target(
             name="odin_{}".format(project_name),
@@ -166,13 +166,14 @@ gwf.target(
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate dnoise_2
             cd results
-            Rscript ../scripts/odin.r ../tmp/{project_name} {project_name}
+            Rscript ../scripts/odin_220224.r ../tmp/{project_name} {project_name}
         """.format(project_name=project_name) 
             
 #Using obigrep to remove singletons (from last part of ODIN function). 
 
-input_file = "results/{}.SWARM_seeds.fasta".format(project_name)
-output_file = "results/{}.seeds_nonsingleton.fasta".format(project_name)
+input_file = "results/{}_SWARM_seeds.fasta".format(project_name)
+output_file = "results/{}_seeds_abundant.fasta".format(project_name)
+
 gwf.target(
             name="nonsingleton_{}_{}".format(project_name, library_id),
             inputs=input_file,
@@ -183,5 +184,7 @@ gwf.target(
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir
+            echo "ODIN will now remove MOTUs with total abundance less than ",min_reads_MOTU," from the fasta output file, to decrease THOR's workload."
             obigrep -p 'size>1' {input_file} > {output_file}
+            echo "ODIN is done."
         """.format(library_id=library_id, input_file=input_file, output_file=output_file) 
