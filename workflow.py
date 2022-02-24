@@ -139,12 +139,12 @@ gwf.target(
             echo "HELA is done."
         """.format(output=output, project_name=project_name) 
 
-#Using Mjolnir pipeline to perform OTU clustering and denoising. Run separately, as DnoisE was not compatible with the "mjolnir" conda environment. The SWARM clustering itself was done by Owen Wangensteen at UiT, producing the four commented output files below.
+#Using Mjolnir pipeline to perform OTU clustering and denoising. Run separately, as DnoisE was not compatible with the "mjolnir" conda environment. The SWARM clustering itself was done by Owen Wangensteen at UiT, producing the four commented output files below. Replaced "." with "_" in input file names.
  
 input_files = []
 
-input_files.append("tmp/{}.new.tab".format(project_name))
-input_files.append("tmp/{}.vsearch.fasta".format(project_name))
+input_files.append("tmp/{}_new.tab".format(project_name))
+input_files.append("tmp/{}_vsearch.fasta".format(project_name))
 
 output_files = []
  
@@ -152,8 +152,8 @@ output_files = []
 #output_files.append("results/{}_SWARM13nc_stats".format(project_name))
 #output_files.append("results/{}_SWARM_output".format(project_name))
 #output_files.append("results/{}_non_singleton_motu_list.txt".format(project_name))
-output_files.append("results/{}.SWARM_output.counts.csv".format(project_name))
-output_files.append("results/{}.SWARM_output.ESV.csv".format(project_name))
+output_files.append("results/{}_SWARM_output.counts.csv".format(project_name))
+output_files.append("results/{}_SWARM_output.ESV.csv".format(project_name))
 
 gwf.target(
             name="odin_{}".format(project_name),
