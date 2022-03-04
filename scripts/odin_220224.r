@@ -6,7 +6,7 @@ lib_in <- as.character(args[1])
 # Input name for the final combined library (should be a 4-character name)
 lib <- as.character(args[2])
 
-cores <- 32
+cores <- 18
  
 # ODIN: OTU Delimitation Inferred by Networks
 
@@ -75,9 +75,9 @@ function(lib,cores,d=13,min_reads_MOTU=2,min_reads_ESV=2,run_swarm=TRUE,generate
   necesarios <- unlist(clusters, use.names=F)
   
   # Generate a file with the list of ids of non-singleton clusters
-  motulist <- file(paste0(lib,"_non_singleton_motu_list.txt"),"wt")
-  writeLines(id,motulist)
-  message("ODIN has created the file ",paste0(lib,"_non_singleton_motu_list.txt")," with the list of identifiers of non-singleton MOTUs.")
+  #motulist <- file(paste0(lib,"_non_singleton_motu_list.txt"),"wt")
+  #writeLines(id,motulist)
+  #message("ODIN has created the file ",paste0(lib,"_non_singleton_motu_list.txt")," with the list of identifiers of non-singleton MOTUs.")
   
   # Read counts database and keep only the needed clusters
   message("ODIN is reading the abundance database. This could take Him a while, since He has just one eye left, after all.")
@@ -120,7 +120,7 @@ function(lib,cores,d=13,min_reads_MOTU=2,min_reads_ESV=2,run_swarm=TRUE,generate
     X <- NULL
     for (motu in id) X <- c(X, paste0("python3 ", dnoise_path, " --csv_input MOTU_tsv/",
             motu, " --csv_output ", motu, " -s ", start_samp,
-            " -z ", end_samp, " -n 'count' -p 1 -y T -c 16 -m 313"))
+            " -z ", end_samp, " -n 'count' -p 1 -y T -c 18 -m 313"))
     clusterExport(clust, "X",envir = environment())
     parLapply(clust,X, function(x) system(x,intern=T,wait=T))
     stopCluster(clust)

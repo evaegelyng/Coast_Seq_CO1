@@ -159,9 +159,9 @@ gwf.target(
             name="odin_{}".format(project_name),
             inputs=input_files,
             outputs=output_files,
-            cores=32,
-            memory="12g",
-            walltime="4:00:00",
+            cores=18,
+            memory="384g",
+            walltime="7-00:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate dnoise_2
