@@ -138,7 +138,7 @@ function(lib,cores,d=13,min_reads_MOTU=2,min_reads_ESV=2,run_swarm=TRUE,generate
   }
     
   #message("ODIN will now remove MOTUs with total abundance less than ",min_reads_MOTU," from the fasta output file, to decrease THOR's workload.")
-  system(paste0("sed -i 's/;size/ size/g' ",lib,"_SWARM_seeds.fasta"),intern=T,wait=T)
+  #system(paste0("sed -i 's/;size/ size/g' ",lib,"_SWARM_seeds.fasta"),intern=T,wait=T)
   #system(paste0("obigrep -p 'size>",(min_reads_MOTU-1),"' ",lib,"_SWARM_seeds.fasta > ",lib,"_seeds_abundant.fasta"),intern=T,wait=T)
   #message("ODIN is done.")
 }
