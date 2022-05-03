@@ -825,4 +825,3 @@ mjolnir5_THOR <- function(lib,cores,tax_dir,ref_db,taxo_db,obipath="",run_ecotag
   }
     
 mjolnir5_THOR(lib,cores,tax_dir="../../taxo",ref_db="DUFA_COLR_20210723.fasta",taxo_db="taxo_NCBI_20210720")
-
