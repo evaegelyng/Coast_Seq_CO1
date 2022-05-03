@@ -161,7 +161,7 @@ gwf.target(
             outputs=output_files,
             cores=18,
             memory="384g",
-            walltime="7-00:00:00",
+            walltime="7-00:00:00",            
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate dnoise_2
@@ -188,3 +188,131 @@ gwf.target(
             obigrep -p 'size>1' {input_file} > {output_file}
             echo "ODIN is done."
         """.format(library_id=library_id, input_file=input_file, output_file=output_file) 
+
+#Assign the taxonomy to the representative sequence of each MOTU. 
+
+input_file = "results/{}_seeds_abundant.fasta".format(project_name)
+output_file = "results/{}_ecotag_annotated.tsv".format(project_name)
+
+gwf.target(
+            name="thor_{}".format(project_name),
+            inputs=input_file,
+            outputs=output_file,
+            cores=54,
+            memory="196g",
+            walltime="3-00:00:00",
+        ) << """
+            eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
+            conda activate mjolnir
+            cd results
+            Rscript ../scripts/thor.r {project_name}
+        """.format(project_name=project_name)    
+
+# FRIGGA will integrate the information of MOTU abundances and taxonomy assignment from ODIN & THOR in a single table
+
+input_files = []
+
+input_files.append("results/{}_ecotag_annotated_old.tsv".format(project_name))
+input_files.append("results/{}_SWARM_output_counts.tsv".format(project_name))
+output_file = "results/{}_All_MOTUs.tsv".format(project_name)
+
+gwf.target(
+            name="frigga_{}".format(project_name),
+            inputs=input_files,
+            outputs=output_file,
+            cores=1,
+            memory="8g",
+            walltime="00:10:00",
+        ) << """
+            eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
+            conda activate mjolnir
+            cd results
+            Rscript ../scripts/frigga.r {project_name}
+        """.format(project_name=project_name)         
+        
+# LOKI will remove the pseudogenes and will keep track of the taxonomic information of the removed MOTUs
+        
+input_file= "results/{}_All_MOTUs.tsv".format(project_name)
+output_files = []
+
+output_files.append("results/{}_match_list.txt".format(project_name))
+output_files.append("results/{}_Discarded_LULU.tsv".format(project_name))
+output_files.append("results/{}_Curated_LULU.tsv".format(project_name))
+output_files.append("results/{}_Deleted_LULU_fate.tsv".format(project_name))
+
+gwf.target(
+            name="loki_{}".format(project_name),
+            inputs=input_file,
+            outputs=output_files,
+            cores=1,
+            memory="56g",
+            walltime="12:00:00",
+        ) << """
+            eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
+            conda activate mjolnir
+            cd results
+            Rscript ../scripts/loki.r {project_name}
+        """.format(project_name=project_name)         
+                        
+### Combine all the metadata files into one large file
+
+#First, copy all the input files to the tmp folder to allow using the glob function below. Could also just output directly to tmp when creating the files, but it seems more organized to have them in their corresponding library folder
+#cd tmp
+#for FOLDER_NAME in ./S*
+#do
+#  cp "$FOLDER_NAME"/metadata* . 
+#  echo  "$FOLDER_NAME done"
+#done
+
+#for FOLDER_NAME in ./W*
+#do
+#  cp "$FOLDER_NAME"/metadata* . 
+#  echo  "$FOLDER_NAME done"
+#done
+
+input_files = glob('tmp/metadata*')
+ 
+output_file = "results/{}_metadata.tsv".format(project_name)
+    
+gwf.target(
+   name="metadata_{}".format(project_name),
+   inputs=input_files,
+   outputs=output_file,
+   cores=1,
+   memory="8g",
+   walltime="00:10:00",
+ ) << """
+    head -n1 tmp/metadata_S111.tsv > results/COSQ_metadata.tsv
+    for fname in tmp/metadata*
+    do
+        tail -n +2 $fname >> results/COSQ_metadata.tsv
+    done
+   """   
+
+#Now the copies of the metadata files in the tmp folder can be deleted
+#cd tmp
+#rm_force metadata*
+
+# RAGNAROC will change the names of the samples to recover the original names and will remove unnecessary columns
+
+input_files= []
+
+input_files.append("results/{}_metadata.tsv".format(project_name))
+input_files.append("results/{}_Curated_LULU.tsv".format(project_name))
+input_files.append"results/{}_All_MOTUs.tsv".format(project_name))
+
+output_file = "results/{}_final_dataset.tsv".format(project_name))
+
+gwf.target(
+            name="ragnaroc_{}".format(project_name),
+            inputs=input_file,
+            outputs=output_files,
+            cores=1,
+            memory="56g",
+            walltime="12:00:00",
+        ) << """
+            eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
+            conda activate mjolnir
+            cd results
+            Rscript ../scripts/ragnaroc.r {project_name}
+        """.format(project_name=project_name)        
