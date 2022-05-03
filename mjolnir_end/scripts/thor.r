@@ -3,7 +3,7 @@ args = commandArgs(trailingOnly=TRUE)
 # Input name for the final combined library (should be a 4-character name)
 lib <- as.character(args[1])
 
-cores <- 18
+cores <- 54
   
 # THOR: Taxonomy with Higher-than-Order Ranks
 # This is a wrapper of ecotag

@@ -199,9 +199,9 @@ gwf.target(
             name="thor_{}".format(project_name),
             inputs=input_file,
             outputs=output_file,
-            cores=18,
-            memory="32g",
-            walltime="2:00:00",
+            cores=54,
+            memory="196g",
+            walltime="3-00:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir
