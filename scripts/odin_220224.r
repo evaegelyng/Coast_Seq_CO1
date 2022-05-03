@@ -144,4 +144,4 @@ function(lib,cores,d=13,min_reads_MOTU=2,min_reads_ESV=2,run_swarm=TRUE,generate
 }
 
 # ODIN will do the clustering & will generate a table with the abundances of each MOTU in each sample
-mjolnir4_ODIN_eva(lib,cores,d=13,run_swarm=FALSE,generate_ESV=TRUE)
+mjolnir4_ODIN_eva(lib,cores,d=13,run_swarm=FALSE,generate_ESV=FALSE)

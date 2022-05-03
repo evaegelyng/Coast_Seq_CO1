@@ -49,7 +49,7 @@ for library_root in libraries:
     output_files.append("tmp/{}/{}_sample_002.fasta".format(library_id,library_id)) #Use sample_002 as indication of completion. Sample_001 is a negative control in most libraries and often gives no fasta file.
         
     gwf.target(
-                name="mjolnir_{}_{}".format(project_name, library_id),
+                name="ran_{}_{}".format(project_name, library_id),
                 inputs=input_files,
                 outputs=output_files,
                 cores=16,    
@@ -59,7 +59,7 @@ for library_root in libraries:
                 eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
                 conda activate mjolnir
                 cd tmp/{library_id}
-                Rscript ./scripts/mjolnir.r {R1} {library_id}
+                Rscript ./scripts/ran_freyja.r {R1} {library_id}
                 [[ -f "{library_id}_sample_002.fasta" ]] || touch "{library_id}_sample_002.fasta"
             """.format(R1=input_files[0], library_id=library_id) 
  
@@ -148,12 +148,16 @@ input_files.append("tmp/{}_vsearch.fasta".format(project_name))
 
 output_files = []
  
+# SWARM was run separately by O. Wangensteen at UiT, producing the following outputs. However, it could also be run on GenomeDK - this just require 72 cores and almost 2 weeks..
 #output_files.append("results/{}_SWARM_seeds.fasta".format(project_name))
 #output_files.append("results/{}_SWARM13nc_stats".format(project_name))
 #output_files.append("results/{}_SWARM_output".format(project_name))
 #output_files.append("results/{}_non_singleton_motu_list.txt".format(project_name))
+
+# DnoisE is run in a separate target for now, producing the following output
+#output_files.append("results/{}_SWARM_output.ESV.csv".format(project_name))
+
 output_files.append("results/{}_SWARM_output.counts.csv".format(project_name))
-output_files.append("results/{}_SWARM_output.ESV.csv".format(project_name))
 
 gwf.target(
             name="odin_{}".format(project_name),
@@ -167,6 +171,31 @@ gwf.target(
             conda activate dnoise_2
             cd results
             Rscript ../scripts/odin_220224.r ../tmp/{project_name} {project_name}
+        """.format(project_name=project_name) 
+
+# Use DnoisE to remove likely erroneous sequences
+
+input_files = []
+
+input_files.append("tmp/{}_vsearch.fasta".format(project_name))
+input_files.append("results/{}_SWARM_output".format(project_name))
+
+output_files = []
+
+output_files.append("results/{}_SWARM_output.ESV.csv".format(project_name))
+
+gwf.target(
+            name="dnoise_{}".format(project_name),
+            inputs=input_files,
+            outputs=output_files,
+            cores=70,
+            memory="96g",
+            walltime="12:00:00",            
+        ) << """
+            eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
+            conda activate mjolnir
+            cd results
+            ../scripts/Script2_DnoisE_ESV.sh
         """.format(project_name=project_name) 
             
 #Using obigrep to remove singletons (from last part of ODIN function). 
