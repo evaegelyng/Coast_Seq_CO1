@@ -3,20 +3,21 @@
 
 # set many variables manually depending on your computer directories and files
 vsearch_file=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/COSQ_vsearch.fasta # fasta file before swarm
+tmp_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/ #EES: directory where OTU table is stored
 input_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results/ # directory where the output of swarm is stored (see line 46)
 scripts_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/scripts/  # directory where store required scripts (see line 163)
 DnoisE_dir=/home/evaes/miniconda3/pkgs/dnoise-1.0-py38_0/lib/python3.8/site-packages/src/ 
-cores=70 # number of cores (remember that there is a tread-off between speed and RAM. To much speed could kill the process due to RAM
+cores=54 # number of cores (remember that there is a tread-off between speed and RAM. To much speed could kill the process due to RAM
 
-MOTUS2RUN=${input_dir}motu_list.txt # list of MOTUs
+MOTUS2RUN=${input_dir}COSQ_non_singleton_motu_list.txt # list of MOTUs
 
 
 
 # create some directories to store all files separately
-motus_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/motus/
-motus_tab_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/motu_tab/
-output_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/output_Ad_corr/
-final_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/finalfiles/
+motus_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/motus/
+motus_tab_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/motu_tab/
+output_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/output_Ad_corr/
+final_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/finalfiles/
 
 if [[ ! -d ${motus_dir} ]]
  then
@@ -38,8 +39,7 @@ if [[ ! -d ${final_dir} ]]
   mkdir ${final_dir}
  fi
 
-
-RUN=false
+RUN=true
 if ${RUN}
  then
 	# Size tag of the output of SWARM must be removed
@@ -68,7 +68,7 @@ if ${RUN}
 	for i in $(seq 1 ${lines})
 	do
   		var=$(sed "${i}q;d" ${MOTUS2RUN})
-  		sed "1q;d" ${input_dir}COSQ_new.tab >${motus_tab_dir}${var}
+  		sed "1q;d" ${tmp_dir}COSQ_new.tab >${motus_tab_dir}${var}
   		mkdir ${motus_tab_dir}${var}_dir
   		temporal_dir=${motus_tab_dir}${var}_dir/
   		cd ${temporal_dir}
@@ -76,7 +76,7 @@ if ${RUN}
   		for z in *
    		do
     			linesmotu=$(sed -e ':a;N;$!ba;s/\n/\\|/g' ${temporal_dir}${z}) # change line breaks to '|'
-    			grep ${linesmotu} ${input_dir}COSQ_new.tab >${temporal_dir}${z}_grep&
+    			grep ${linesmotu} ${tmp_dir}COSQ_new.tab >${temporal_dir}${z}_grep&
    		done
   		wait
   		cat ${temporal_dir}*_grep >>${motus_tab_dir}${var}
@@ -95,9 +95,7 @@ then
 	python3 ${DnoisE_dir}DnoisE.py --fasta_input ${vsearch_file} --csv_output ${input_dir} -n size -g
 fi
 
-
-
-RUN=true
+RUN=false
 if ${RUN}
 then
 
@@ -125,7 +123,7 @@ then
 
 fi
 
-RUN=true
+RUN=false
 if ${RUN}
 then
 

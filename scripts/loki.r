@@ -27,7 +27,7 @@ mjolnir7_LOKI <- function(lib,min_id = .84){
   suppressPackageStartupMessages(library(lulu))
   
   #Load the dataset
-  db <- read.table(paste0(lib,"_All_MOTUs.tsv"),sep="\t",head=T,stringsAsFactors = F)
+  db <- read.table(paste0(lib,"_All_MOTUs_classified.tsv"),sep="\t",head=T,stringsAsFactors = F)
     # Select sample abundance columns
   sample_cols <- (1:ncol(db))[tolower(substr(names(db),6,11))=="sample"]
   otutable_name <-db[,sample_cols]

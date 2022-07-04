@@ -13,10 +13,10 @@ lib <- as.character(args[1])
 mjolnir8_RAGNAROC <- function(lib,metadata_table="",output_file="",min_reads=2,min_relative=1/50000,sort_MOTUs="id",
                               remove_bacteria=F,remove_contamination=F,contamination_file="contaminants.txt"){
     message("RAGNAROC is coming. Original sample names will be recovered.")
-    if (output_file == "") output_file <- paste0(lib,"_final_dataset.tsv")
+    if (output_file == "") output_file <- paste0(lib,"_final_dataset_classified.tsv")
     #Load the dataset
         # If LULU file exists, load it, otherwise load the All_MOTUs file
-        file_to_load <- ifelse(file.exists(paste0(lib,"_Curated_LULU.tsv")),paste0(lib,"_Curated_LULU.tsv"),paste0(lib,"_All_MOTUs.tsv"))
+        file_to_load <- ifelse(file.exists(paste0(lib,"_Curated_LULU.tsv")),paste0(lib,"_Curated_LULU.tsv"),paste0(lib,"_All_MOTUs_classified.tsv"))
         db <- read.table(file_to_load,sep="\t",head=T,stringsAsFactors = F)
     # Select sample abundance columns
         sample_cols <- (1:ncol(db))[tolower(substr(names(db),6,11))=="sample"]
@@ -85,8 +85,8 @@ mjolnir8_RAGNAROC <- function(lib,metadata_table="",output_file="",min_reads=2,m
     # Write final table
         if (output_file=="") output_file <- paste0(lib,".final_dataset.tsv") 
         write.table(db_new,output_file,row.names = F,sep="\t",quote = F)
-        message("After RAGNAROC, MJOLNIR is done. File: ",output_file, " written with ",nrow(db_new), " MOTUs and ",sum(db_new$total_reads)," total reads.")
-        
-# RAGNAROC will change the names of the samples to recover the original names and will remove unnecessary columns
-mjolnir8_RAGNAROC(lib,"COSQ_metadata.tsv")
+        message("After RAGNAROC, MJOLNIR is done. File: ",output_file, " written with ",nrow(db_new), " MOTUs and ",sum(db_new$total_reads)," total reads.")      
 }
+
+# RAGNAROC will change the names of the samples to recover the original names and will remove unnecessary columns
+mjolnir8_RAGNAROC(lib)
