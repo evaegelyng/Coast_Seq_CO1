@@ -89,4 +89,4 @@ mjolnir8_RAGNAROC <- function(lib,metadata_table="",output_file="",min_reads=2,m
 }
 
 # RAGNAROC will change the names of the samples to recover the original names and will remove unnecessary columns
-mjolnir8_RAGNAROC(lib)
+mjolnir8_RAGNAROC(lib,metadata_table="COSQ_metadata_new.tsv")
