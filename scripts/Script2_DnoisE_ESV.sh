@@ -39,7 +39,7 @@ if [[ ! -d ${final_dir} ]]
   mkdir ${final_dir}
  fi
 
-RUN=true
+RUN=false
 if ${RUN}
  then
 	# Size tag of the output of SWARM must be removed
@@ -62,7 +62,11 @@ if ${RUN}
 	
 	echo motu composition done
 
+fi
 
+RUN=true
+if ${RUN}
+ then
 	# generate a .tab file for each MOTU with all sample information
 	lines=$(wc -l ${MOTUS2RUN} | cut -f1 -d ' ')
 	for i in $(seq 1 ${lines})

@@ -3,6 +3,7 @@ import os, sys
 import math
 from glob import glob
 import io
+import subprocess
 
 project_name = "COSQ"
 
@@ -173,31 +174,56 @@ gwf.target(
             Rscript ../scripts/odin_220224.r ../tmp/{project_name} {project_name}
         """.format(project_name=project_name) 
 
-# Use DnoisE to remove likely erroneous sequences
+# Create a file per MOTU with all sequences that clustered into.
 
-input_files = []
+input_file = "results/{}_SWARM_output".format(project_name)
+MOTUS2RUN="results/{}_non_singleton_motu_list.txt".format(project_name) # list of MOTUs
 
-input_files.append("tmp/{}_vsearch.fasta".format(project_name))
-input_files.append("results/{}_SWARM_output".format(project_name))
-
-output_files = []
-
-output_files.append("results/{}_SWARM_output.ESV.csv".format(project_name))
+motus_dir = "tmp/motus/"
+output_file = "{}COSQ_000000001".format(motus_dir) # Only added the first MOTU file as an output
 
 gwf.target(
-            name="dnoise_{}".format(project_name),
-            inputs=input_files,
-            outputs=output_files,
-            cores=54,
+            name="motus_{}".format(project_name),
+            inputs=[input_file,MOTUS2RUN],
+            outputs=output_file,
+            cores=1,
             memory="196g",
-            walltime="12:00:00",            
+            walltime="7-00:00:00",            
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate dnoise_2
-            cd results
-            ../scripts/Script2_DnoisE_ESV.sh
-        """.format(project_name=project_name) 
-            
+            mkdir -p {motus_dir}
+            scripts/motus.sh {input_file} {MOTUS2RUN} {motus_dir}
+        """.format(project_name=project_name, input_file=input_file, output_file=output_file, MOTUS2RUN=MOTUS2RUN, motus_dir=motus_dir) 
+
+# Generate a .tab file for each MOTU with all sample information
+
+motus_tab_dir="tmp/motu_tab/"
+
+#lines=$(wc -l ${MOTUS2RUN} | cut -f1 -d ' ') # Result: 216268
+
+with open(MOTUS2RUN, 'r') as fp:
+    read = fp.readlines() 
+    lines = len(read) # Result: 216269, covering read[0] to reads[216268]. Seems like the
+    #result from bash was incorrect by one line?
+
+for i in range(1,len(read)):
+    input_file = "tmp/{}_new.tab".format(project_name)
+    output_file = "{}done_{}.txt".format(motus_tab_dir,i) # Only added the first MOTU tab file as an output
+        
+    gwf.target(
+                name="tab_{}_{}".format(project_name, i),
+                inputs=input_file,
+                outputs=output_file,
+                cores=1,
+                memory="16g",
+                walltime="1:00:00",
+            ) << """
+                mkdir -p {motus_tab_dir}
+                scripts/tab.sh {motus_tab_dir} {i} {MOTUS2RUN} {input_file} {motus_dir}
+                echo ${i} > done_{i}.txt
+            """.format(motus_tab_dir=motus_tab_dir, i=i, MOTUS2RUN=MOTUS2RUN, input_file=input_file, motus_dir=motus_dir)
+		
 #Using obigrep to remove singletons (from last part of ODIN function). 
 
 input_file = "results/{}_SWARM_seeds.fasta".format(project_name)
@@ -217,27 +243,6 @@ gwf.target(
             obigrep -p 'size>1' {input_file} > {output_file}
             echo "ODIN is done."
         """.format(library_id=library_id, input_file=input_file, output_file=output_file) 
-
-#Assign the taxonomy to the representative sequence of each MOTU. 
-
-input_file = "results/{}_seeds_abundant.fasta".format(project_name)
-output_file = "results/{}_ecotag_annotated.tsv".format(project_name)
-
-gwf.target(
-            name="thor_{}".format(project_name),
-            inputs=input_file,
-            outputs=output_file,
-            cores=54,
-            memory="196g",
-            walltime="3-00:00:00",
-        ) << """
-            eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
-            conda activate mjolnir
-            cd results
-            Rscript ../scripts/thor.r {project_name}
-        """.format(project_name=project_name)    
-
-#We decided to also perform a BLAST search against our own database of eukaryote CO1 sequences from BOLD and GenBank, and taxonomic assignment using our own R script (see MetaBarFlow pipeline on GitHub).
 
 ###Split fasta file (the nochim one with chimeras removed) into K parts
 def splitter(inputFile, K=99):
@@ -369,6 +374,9 @@ gwf.target(
    """         
    
 # FRIGGA will integrate the information of MOTU abundances and taxonomy assignment from ODIN & THOR in a single table
+# To conform with the input file format used by FRIGGA, "classified.txt" was reformatted under the name "COSQ_classified.tsv".
+# Most importantly, the column "scientific_name" contains the score-based identifications from the column "score.id",
+# and the column "best_identity" contains the maximum identity values from the column "pident.max.best".
 
 input_files = []
 
@@ -453,11 +461,16 @@ gwf.target(
 #cd tmp
 #rm_force metadata*
 
+#Importantly, a few of the original sample names were incorrect with regard to the PSU replicate number.
+#Also, the sample names from the original sequencing run and from resequencing were identical, as it was assumed they would be automatically merged. 
+#However, MJOLNIR kept them separate, which is probably more transparent.
+#Therefore, the metadata file was corrected with the script correct_metadata.R. See the file COSQ_metadata_reps.tsv for old and corrected sample names.
+
 # RAGNAROC will change the names of the samples to recover the original names and will remove unnecessary columns
 
 input_files= []
 
-input_files.append("results/{}_metadata.tsv".format(project_name))
+input_files.append("results/{}_metadata_new.tsv".format(project_name))
 input_files.append("results/{}_Curated_LULU.tsv".format(project_name))
 input_files.append("results/{}_All_MOTUs_classified.tsv".format(project_name))
 

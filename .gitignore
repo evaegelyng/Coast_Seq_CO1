@@ -1,0 +1,32 @@
+# temporary data #
+###################
+tmp/
+
+# taxonomic database #
+######################
+taxo/
+
+# results #
+###########
+results/
+
+# temporary folder #
+mjolnir_end/
+
+# test folder #
+###############
+mjolnir_test/
+
+# R cache #
+###########
+.RData
+.Rhistory
+
+# gwf logs and cache #
+#############
+.gwf/
+.gwfconf.json
+
+# python cache #
+################
+__pychache__/

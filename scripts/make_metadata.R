@@ -7,7 +7,7 @@ library("scales")
 library("stringr")
 library("RColorBrewer")
 
-setwd("/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results")
+#setwd("/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results")
 
 #import data with check.names=F
 mjolnir_output<-read.table("COSQ_final_dataset_classified.tsv", sep="\t", header=T, row.names=1,check.names=F,colClasses="character")
@@ -30,9 +30,10 @@ rownames(metadata)<-metadata$sample_ID
 metadata$p_source<- sapply(strsplit(as.character(metadata$sample_ID), "_"), head, 1)
 levels(factor(metadata$p_source))
 
+#In the below, have removed "2SN" and "2WN", as these are included by grepping "SN" and "WN".
 metadata$source<-ifelse(metadata$p_source=="CNE"|metadata$p_source=="2CCNE", 
 as.character("CNE"), ifelse(metadata$p_source=="control", as.character("control"), 
-ifelse(grepl("SN", metadata$p_source, fixed=T)|grepl("WN", metadata$p_source, fixed=T)|grepl("2WN", metadata$p_source, fixed=T)|grepl("2WN", metadata$p_source, fixed=T),as.character("NTC"),
+ifelse(grepl("SN", metadata$p_source, fixed=T)|grepl("WN", metadata$p_source, fixed=T),as.character("NTC"),
 as.character("Field_sample"))))
 
 levels(factor(metadata$source))
@@ -87,7 +88,7 @@ levels(factor(metadata$habitat))
 str(metadata)
 
 ###Get extraction refs
-extraction_refs<-read.table("~/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/results/metadata/extraction_refs_both_seasons.txt", sep="\t", header=T, row.names=1)
+extraction_refs<-read.table("~/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/backup/data/raw_data/extraction_refs_both_seasons.txt", sep="\t", header=T, row.names=1)
 extraction_refs$sample_root<-row.names(extraction_refs)
 extraction_refs$extraction_refs<-sapply(strsplit(as.character(extraction_refs$extraction_number), "_"), head, 1)
 
@@ -127,13 +128,14 @@ test_md<-metadata[,c("sample_ID", "root", "source", "season", "seq_run", "substr
 head(test_md)
 colnames(test_md)[2]<-"sample_root"
 
-####Fix NTCs and CNEs NAs
-test_md[is.na(test_md$extraction_refs),]
-test_md$habitat<-ifelse(is.na(test_md$extraction_refs), NA, test_md$habitat)
-test_md$cluster<-ifelse(is.na(test_md$extraction_refs), NA, test_md$cluster)
-test_md$source<-ifelse(is.na(test_md$extraction_refs), "NTC", test_md$source)
-test_md$season<-ifelse(is.na(test_md$extraction_refs), NA, test_md$season)
-test_md$field_replicate<-ifelse(is.na(test_md$extraction_refs), NA, test_md$field_replicate)
+####Check NAs. Only NTCs should have no extraction refs, and NTCs should have "NA" for 
+####the variables habitat, cluster, season and field replicate.
+na<-test_md[is.na(test_md$extraction_refs),]
+levels(factor(na$source))
+levels(factor(na$habitat))
+levels(factor(na$cluster))
+levels(factor(na$season))
+levels(factor(na$field_replicate))
 
 write.table(test_md, "COSQ_metadata_complete.txt", sep="\t", row.names = T, quote=FALSE)
 write.table(f_otu_mat, "otu_phyloseq.txt", sep="\t", quote=FALSE, row.names=TRUE)
