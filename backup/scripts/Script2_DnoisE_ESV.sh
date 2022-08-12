@@ -7,7 +7,7 @@ tmp_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/
 input_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results/ # directory where the output of swarm is stored (see line 46)
 scripts_dir=/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/scripts/  # directory where store required scripts (see line 163)
 DnoisE_dir=/home/evaes/miniconda3/pkgs/dnoise-1.0-py38_0/lib/python3.8/site-packages/src/ 
-cores=54 # number of cores (remember that there is a tread-off between speed and RAM. To much speed could kill the process due to RAM
+cores=54 # number of cores (remember that there is a trade-off between speed and RAM. To much speed could kill the process due to RAM
 
 MOTUS2RUN=${input_dir}COSQ_non_singleton_motu_list.txt # list of MOTUs
 

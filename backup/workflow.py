@@ -174,14 +174,13 @@ gwf.target(
             Rscript ../scripts/odin_220224.r ../tmp/{project_name} {project_name}
         """.format(project_name=project_name) 
 
-# Create a file per MOTU with all sequences that clustered into. This part could
-# be parallelized like the next chunk to save several days of compute time
+# Create a file per MOTU with all sequences that clustered into.
 
 input_file = "results/{}_SWARM_output".format(project_name)
 MOTUS2RUN="results/{}_non_singleton_motu_list.txt".format(project_name) # list of MOTUs
 
 motus_dir = "tmp/motus"
-output_file = "{}/{}_000000001".format(motus_dir,project_name) # Only added the first MOTU file as an output
+output_file = "{}COSQ_000000001".format(motus_dir) # Only added the first MOTU file as an output
 
 gwf.target(
             name="motus_{}".format(project_name),
@@ -191,6 +190,8 @@ gwf.target(
             memory="196g",
             walltime="7-00:00:00",            
         ) << """
+            eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
+            conda activate dnoise_2
             mkdir -p {motus_dir}
             scripts/motus.sh {input_file} {MOTUS2RUN} {motus_dir}
         """.format(project_name=project_name, input_file=input_file, output_file=output_file, MOTUS2RUN=MOTUS2RUN, motus_dir=motus_dir) 
@@ -216,11 +217,11 @@ for i in range(1,len(read)):
                 outputs=output_file,
                 cores=1,
                 memory="16g",
-                walltime="12:00:00",
+                walltime="7-00:00:00",
             ) << """
                 mkdir -p {motus_tab_dir}
                 scripts/tab.sh {motus_tab_dir} {i} {MOTUS2RUN} {input_file} {motus_dir}
-                echo ${i} > {motus_tab_dir}/done_{i}.txt
+                echo ${i} > done_{i}.txt
             """.format(motus_tab_dir=motus_tab_dir, i=i, MOTUS2RUN=MOTUS2RUN, input_file=input_file, motus_dir=motus_dir)
 
 # here the step to retrieve entropy values from the whole dataset
@@ -242,67 +243,12 @@ gwf.target(
             outputs=output_files,
             cores=1,
             memory="196g",
-            walltime="04:00:00",            
+            walltime="7-00:00:00",            
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate dnoise_2
-            python3 {DnoisE_dir}/DnoisE.py --fasta_input {vsearch_file} --csv_output {output_dir} -n size -g T
+            python3 ${DnoisE_dir}/DnoisE.py --fasta_input ${vsearch_file} --csv_output ${output_dir} -n size -g
         """.format(project_name=project_name, DnoisE_dir=DnoisE_dir, vsearch_file=vsearch_file, output_dir=output_dir)
-
-# Run DnoisE. Remember to input entropy values from previous target to dnoise.sh
-
-output_dir = "tmp/output_Ad_corr"
-
-cores = 6
-
-with open(MOTUS2RUN, 'r') as fp:
-    read = fp.readlines() 
-    lines = len(read) # Result: 216269, covering read[0] to reads[216268]. Seems like the
-    #result from bash was incorrect by one line?
-
-for i in range(1,len(read)):
-    #input_file = "{}/{}_{}.csv".format(motus_tab_dir,project_name,var)
-    input_file = MOTUS2RUN
-    output_file = "{}/done_{}.txt".format(output_dir,i) # Only added the first MOTU tab file as an output
-        
-    gwf.target(
-                name="dnoise_{}_{}".format(project_name, i),
-                inputs=input_file,
-                outputs=output_file,
-                cores=6,
-                memory="16g",
-                walltime="4:00:00",
-            ) << """
-                eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
-                conda activate dnoise_2
-                mkdir -p {output_dir}
-                scripts/dnoise.sh {i} {MOTUS2RUN} {output_dir} {DnoisE_dir} {motus_tab_dir} {cores}
-                echo ${i} > {output_dir}/done_{i}.txt
-            """.format(i=i, MOTUS2RUN=MOTUS2RUN, output_dir=output_dir, DnoisE_dir=DnoisE_dir, motus_tab_dir=motus_tab_dir, cores=cores)
-
-#ESV Addcor
-
-with open(MOTUS2RUN, 'r') as fp:
-    read = fp.readlines() 
-    lines = len(read) # Result: 216269, covering read[0] to reads[216268]. Seems like the
-    #result from bash was incorrect by one line?
-
-for i in range(1,len(read)):
-    #input_file = "{}/{}_Adcorr_denoised_ratio_d.csv".format(output_dir,var)
-    input_file = MOTUS2RUN
-    output_file = "{}/esv_done_{}.txt".format(output_dir,i) # Only added the first MOTU tab file as an output
-        
-    gwf.target(
-                name="esv_{}_{}".format(project_name, i),
-                inputs=input_file,
-                outputs=output_file,
-                cores=1,
-                memory="4g",
-                walltime="4:00:00",
-            ) << """
-                scripts/esv.sh {i} {MOTUS2RUN} {output_dir}
-                echo ${i} > {output_dir}/esv_done_{i}.txt
-            """.format(i=i, MOTUS2RUN=MOTUS2RUN, output_dir=output_dir)
 
 #Using obigrep to remove singletons (from last part of ODIN function). 
 

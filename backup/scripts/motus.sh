@@ -18,7 +18,7 @@ echo swarm_output modified
 lines=$(wc -l ${MOTUS2RUN} | cut -f1 -d ' ')
 for i in $(seq 1 ${lines}) 
 do 
-    var=$(sed "${i}q;d" ${MOTUS2RUN})
+    var=$(sed "${i}q;d" ${MOTUS2RUN}) #Should change "var" to "motu" for consistency with following scripts
 	grep ${var} ${input_file} >${motus_dir}${var}
 	sed -i -e "s/; /\\n/g" ${motus_dir}${var}
 	sed -i -e "s/;//g" ${motus_dir}${var}
