@@ -12,10 +12,5 @@ var=$(sed "${i}q;d" ${MOTUS2RUN})
    		then 
     			echo "${output_dir}/${var}_Adcorr_denoised_ratio_d.csv exists" &
    		else
-    			if [ $i == 1 ]
-     			then
-      				python3 ${DnoisE_dir}/DnoisE.py --csv_input ${motus_tab_dir}/${var} --csv_output ${output_dir}/${var} -c ${cores} -s 4 -z 78 -a 4 -n count -e 0.4812,0.2407,1.0285 -y 2>${output_dir}/${var}_Adcorr_progress &
-     			else
-      				python3 ${DnoisE_dir}/DnoisE.py --csv_input ${motus_tab_dir}/${var} --csv_output ${output_dir}/${var} -c ${cores} -s 4 -z 78 -a 4 -n count -e 0.4812,0.2407,1.0285 -y 2>${output_dir}/${var}_Adcorr_progress &
-    			fi
-  		fi
+    			python3 ${DnoisE_dir}/DnoisE.py --csv_input ${motus_tab_dir}/${var} --csv_output ${output_dir}/${var} -c ${cores} -s 4 -z 78 -a 4 -n count -e 0.4902,0.2385,1.0088 -y 2>${output_dir}/${var}_Adcorr_progress &
+     	fi

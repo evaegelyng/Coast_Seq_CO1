@@ -71,7 +71,8 @@ IDtable$V16 <- seqtab$Taxa[match(IDtable$V15,seqtab$TaxID)]
 IDtable$V16<-gsub(" "," ",IDtable$V16)
 
 # Read the possible problematic taxids as a table
-MergedTaxIDs<-read.table("~/eDNA/faststorage/blastdb/nt_211111/taxdump/MergedTaxIDs", header=TRUE)
+#MergedTaxIDs<-read.table("~/eDNA/faststorage/blastdb/nt_211111/taxdump/MergedTaxIDs", header=TRUE)
+MergedTaxIDs<-read.table("~/eDNA/faststorage/blastdb/nt_220203/taxdump/MergedTaxIDs", header=TRUE)
 
 # Add header information
 names(IDtable) <- c("qseqid","sseqid","pident","length","mismatch","gapopen","qstart","qend","sstart","send","evalue","bitscore","qlen","qcovs","staxid","ssciname")
@@ -93,6 +94,10 @@ names(IDtable) <- c("qseqid","sseqid","pident","length","mismatch","gapopen","qs
       readr::write_file("", args[3])
       stop("Sequence identity is less than 90% for all hits", call.=FALSE)
     }
+
+# Remove hits that are (definitely) not identified to species level (their scientific name only contains one word)
+IDtable <- IDtable %>% mutate(species_level=if_else(sapply(strsplit(as.character(IDtable$ssciname)," "), length)==1, "no","yes"))
+IDtable <- IDtable[IDtable$species_level=="yes",]
 
 # The following is to define for each query sequence a minimum threshold of sequence similarity, which will determine whether a BLAST hit will be taken into account in the taxonomic classification of the query
 # In the summary object below, the values needed to determine this threshold are calculated
@@ -145,7 +150,7 @@ for (j in unique (summary$qseqid)) {
   }
 }
 
-# Test if the identification is solely based on less than 3 sequences - to detect identifications because of 1 or 2 high-similarity hits, which could be errorneous (EET: 07/01/2022)
+# Test if the identification is solely based on less than 3 sequences - to detect identifications because of 1 or 2 high-similarity hits, which could be erroneous (EET: 07/01/2022)
 summary$possible.misid.few<-"NA"  
 for (j in unique (summary$qseqid)) {
   for (i in unique (summary[summary$qseqid==j,]$qseqid_staxid)) {
@@ -201,7 +206,7 @@ assign_taxonomy <- function(table,lower_margin=2, remove = c("")) {       # EES 
   ##
   
   gc <- get_classification(pf_new)
-  cf <- evaluate_classification(gc[[1]])     # AGR # gc[2] is the wrong taxid not classified 
+  cf <- evaluate_classification(gc[[1]])     # AGR # gc[2] is a list of the taxids not classified 
   result <- list(classified_table=cf$taxonon_table, all_classifications=cf$all_taxa_table, all_classifications_summed=cf$all_taxa_table_summed, lower=lower_margin, removed=remove)  # EES removed upper_margin
   if (length(gc[[2]]) != 0) {
     print(paste0("Taxids not found in the classification: ", gc[2])) # AGR - Print the list of not matched taxids  
@@ -250,7 +255,7 @@ get_classification <- function(IDtable2) {
   
   Start_from <- 1 # change if loop needs to be restarted due to time-out
   
-  wrong_taxid_matches <- c()
+  no_taxid_matches <- c()
   remove_entries <- c()
   
   #Get ncbi classification of each entry
@@ -258,25 +263,24 @@ get_classification <- function(IDtable2) {
     #a timeout command, therefor this loop workaround.
     print(paste0("step 1 of 3: processing: ", cl , " of ", o , " taxids")) # make a progressline (indicating the index the loops needs to be
     #restarted from if it quits)
-    tax_match <- classification(all_staxids[cl], db = "ncbi")   # AGR 
-    if (is.na(tax_match) == TRUE) {
-      wrong_taxid_matches <- c(wrong_taxid_matches,all_staxids[cl])
-      remove_entries <- c(remove_entries,cl)
+     tax_match <- classification(all_staxids[cl], db = "ncbi")   # AGR 
+    if (is.na(tax_match) == TRUE) { #This happens when the hit was to a taxon from the BOLD database, which was not in NCBIs taxonomy, when the 
+    # BOLD+NCBI database was made, and which were therefore given a dummy taxid. These hits will produce NAs in the classification, or a wrong
+    # classification if the dummy taxid is now in use by NCBI. These hits must therefore be manually checked in the output file by comparing the 
+    # ssciname column with the final identification (EES 19-08-2022)
+      no_taxid_matches <- c(no_taxid_matches,all_staxids[cl])
+      tax_na <- classification(all_staxids[1], db = "ncbi") # Use classification of 1st taxid as a template
+      tax_na[[1]]["name"]<-"NA" # Replace tax names with NA
+      tax_na[[1]]["id"]<-"NA" # Replace taxids at each tax level with NA
+      all_classifications[cl] <- tax_na
     } else {
       all_classifications[cl] <- tax_match
-    }                                                           # AGR 
+    }                                                            
   }
-  
-  # In case there are still bad taxIDs, we delete all sequences with the bad tax ID (Adrian + Mads solve 15-01-2020)
-  if (length(wrong_taxid_matches) != 0) {
-    all_classifications <- all_classifications[-remove_entries]
-  }
-  
+    
   #Construct a taxonomic path from each classification
   output <- data.frame(staxid=character(),kingdom=character(), phylum=character(),class=character(),order=character(),family=character(),genus=character(),species=character(), stringsAsFactors=FALSE)
-  totalnames <- length(all_staxids) - length(wrong_taxid_matches)
-  
-  ## - 1 ## this is if you have one NA, would run on test file, but not necessarily on other files with more NAs
+  totalnames <- length(all_staxids)
   for (curpart in seq(1:totalnames)) {
     print(paste0("step 2 of 3: progress: ", round(((curpart/totalnames) * 100),0) ,"%")) # make a progress line
     currenttaxon <- all_classifications[curpart][[1]]
@@ -294,7 +298,7 @@ get_classification <- function(IDtable2) {
   }
   taxonomic_info <- merge(IDtable2,output,by = "staxid", all=TRUE)
   taxonomic_info$species[is.na(taxonomic_info$species)] <- taxonomic_info$ssciname[is.na(taxonomic_info$species)] 
-  return(list(taxonomic_info,wrong_taxid_matches))
+  return(list(taxonomic_info,no_taxid_matches))
 }
 
 # Function3
@@ -358,16 +362,26 @@ tax_table$pident.max.best<-"NA"
 for (i in unique (tax_table$qseqid)){
    tax_table[tax_table$qseqid==i,]$pident.max.best<-summary[summary$qseqid==i,]$pident.max.best[1]
 }
+
+# Add scientific name of top BLAST hit to tax_table from summary table. This is to inspect hits to taxa in 
+# the BOLD database, which were not in the NCBI taxonomy when the BOLD+NCBI database was made, and which
+# were therefore given a dummy taxid. These hits will produce NAs in the classification, or a wrong
+# classification if the dummy taxid is now in use by NCBI (EES 19-08-2022)
+tax_table$ssciname<-"NA"
+for (i in unique (tax_table$qseqid)){
+   tax_table[tax_table$qseqid==i,]$ssciname<-summary[summary$qseqid==i,]$ssciname[1]
+}
                                       
 # Determine a "final" taxonomic ID, using scores combined with a minimum similarity threshold of 98% for species-level id
 score.id = c()
 for(i in tax_table$qseqid){
-  vec=c(tax_table[tax_table$qseqid==i,]$species_score==100 & tax_table[tax_table$qseqid==i,]$pident.max.best>=98,
-  tax_table[tax_table$qseqid==i,]$genus_score==100 & (tax_table[tax_table$qseqid==i,]$pident.max.best<98 | tax_table[tax_table$qseqid==i,]$species_score<100),
-  tax_table[tax_table$qseqid==i,]$family_score==100 & tax_table[tax_table$qseqid==i,]$genus_score<100,
-  tax_table[tax_table$qseqid==i,]$order_score==100 & tax_table[tax_table$qseqid==i,]$family_score<100,
-  tax_table[tax_table$qseqid==i,]$order_score<100 & tax_table[tax_table$qseqid==i,]$class_score==100,
-  tax_table[tax_table$qseqid==i,]$class_score<100 & tax_table[tax_table$qseqid==i,]$phylum_score==100)
+  idx =  tax_table$qseqid==i
+  vec=c( isTRUE(all.equal(tax_table[idx,]$species_score, 100)) & as.numeric(tax_table[idx,]$pident.max.best)>=98,
+  isTRUE(all.equal(tax_table[idx,]$genus_score, 100)) & (as.numeric(tax_table[idx,]$pident.max.best)<98 | tax_table[idx,]$species_score<100),
+  isTRUE(all.equal(tax_table[idx,]$family_score, 100)) & tax_table[idx,]$genus_score<100,
+  isTRUE(all.equal(tax_table[idx,]$order_score, 100)) & tax_table[idx,]$family_score<100,
+  isTRUE(all.equal(tax_table[idx,]$class_score, 100)) & tax_table[idx,]$order_score<100,
+  isTRUE(all.equal(tax_table[idx,]$phylum_score, 100)) & tax_table[idx,]$class_score<100)
 
   # If the species score is 100 and the sequence similarity above 98%, final ID will be to species level
   # If a species level ID cannot be made, but the genus score is 100, final ID will be to genus level
@@ -383,19 +397,19 @@ for(i in tax_table$qseqid){
   if(is.na(condition_num))
     score.id = c(score.id, "NA")
   else if(condition_num==1)
-    score.id = c(score.id, as.vector(tax_table[tax_table$qseqid==i,]$species)[1])
+    score.id = c(score.id, as.vector(tax_table[idx,]$species)[1])
   else if(condition_num==2)
-    score.id = c(score.id, as.vector(tax_table[tax_table$qseqid==i,]$genus)[1])
+    score.id = c(score.id, as.vector(tax_table[idx,]$genus)[1])
   else if(condition_num==3)
-    score.id = c(score.id, as.vector(tax_table[tax_table$qseqid==i,]$family)[1])
+    score.id = c(score.id, as.vector(tax_table[idx,]$family)[1])
   else if(condition_num==4)
-    score.id = c(score.id, as.vector(tax_table[tax_table$qseqid==i,]$order)[1])
+    score.id = c(score.id, as.vector(tax_table[idx,]$order)[1])
   else if(condition_num==5)
-    score.id = c(score.id, as.vector(tax_table[tax_table$qseqid==i,]$class)[1])
+    score.id = c(score.id, as.vector(tax_table[idx,]$class)[1])
   else if(condition_num==6)
-    score.id = c(score.id, as.vector(tax_table[tax_table$qseqid==i,]$phylum)[1])
+    score.id = c(score.id, as.vector(tax_table[idx,]$phylum)[1])
   else
-    score.id = c(score.id, as.vector(tax_table[tax_table$qseqid==i,]$kingdom)[1])
+    score.id = c(score.id, as.vector(tax_table[idx,]$kingdom)[1])
 }
 
 tax_table$score.id <- score.id
@@ -403,7 +417,7 @@ tax_table$score.id <- score.id
 # Add the "possible.misid column" to tax_table from summary table. Not working currently
 #tax_table$possible.misid<-"NA"
 #for (i in unique (tax_table$qseqid)){
-#   tax_table[tax_table$qseqid==i,]$possible.misid<-ifelse(sum(summary[summary$qseqid==i,]$possible.misid==1) > 0,1,0)
+#   tax_table[idx,]$possible.misid<-ifelse(sum(summary[summary$qseqid==i,]$possible.misid==1) > 0,1,0)
 #}
       
 # Optionally, synonyms of scientific names can be downloaded from an appropriate database (WoRMS in the example below. See "taxize" documentation for other database options).
@@ -429,9 +443,9 @@ tax_table$score.id <- score.id
 # For each eDNA sequence with a species-level identification (nwords equal to 2), add synonyms and valid name     
 #for (i in tax_table$qseqid){
 #
-#   if (tax_table[tax_table$qseqid==i,]$nwords==2){
+#   if (tax_table[idx,]$nwords==2){
 #       
-#       worms_id<-get_wormsid(tax_table[tax_table$qseqid==i,]$species)
+#       worms_id<-get_wormsid(tax_table[idx,]$species)
 #
 #       syns<-synonyms(as.character(worms_id[1]),db="worms")
 #       
@@ -439,9 +453,9 @@ tax_table$score.id <- score.id
 #       
 #                                                       syns_vec<-syns[[as.character(worms_id[1])]]['scientificname']
 #
-#                                                       tax_table[tax_table$qseqid==i,]$synonyms<-paste(unlist(syns_vec), collapse = ', ')
+#                                                       tax_table[idx,]$synonyms<-paste(unlist(syns_vec), collapse = ', ')
 #                                                       
-#                                                       tax_table[tax_table$qseqid==i,]$valid_name<-syns[[as.character(worms_id[1])]][['valid_name']][1]
+#                                                       tax_table[idx,]$valid_name<-syns[[as.character(worms_id[1])]][['valid_name']][1]
 #                                                       }
 #       }
 #}
