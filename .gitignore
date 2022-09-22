@@ -30,3 +30,7 @@ mjolnir_test/
 # python cache #
 ################
 __pycache__/
+
+# SLURM log #
+#############
+nohup.out

@@ -56,9 +56,9 @@ mjolnir7_LOKI <- function(lib,min_id = .84){
   deleted_otu_fate$parent_taxo <- ""
   for (i in 1:nrow(deleted_otu_fate)){
     deleted_otu_fate$id_removed[i] <- rownames(deleted_otu_fate)[i]
-    deleted_otu_fate$original[i] <- db$scientific_name[db$id==rownames(deleted_otu_fate)[i]]
-    deleted_otu_fate$parent_taxo[i] <- db$scientific_name[db$id==deleted_otu_fate$parent_id[i]]
-    deleted_otu_fate$superkingdom[i] <- db$superkingdom[db$id==deleted_otu_fate$parent_id[i]]
+    deleted_otu_fate$original[i] <- db$ssciname[db$id==rownames(deleted_otu_fate)[i]]
+    deleted_otu_fate$parent_taxo[i] <- db$ssciname[db$id==deleted_otu_fate$parent_id[i]]
+    #deleted_otu_fate$superkingdom[i] <- db$superkingdom[db$id==deleted_otu_fate$parent_id[i]]
     deleted_otu_fate$kingdom[i] <- db$kingdom[db$id==deleted_otu_fate$parent_id[i]]
     deleted_otu_fate$phylum[i] <- db$phylum[db$id==deleted_otu_fate$parent_id[i]]
     deleted_otu_fate$class[i] <- db$class[db$id==deleted_otu_fate$parent_id[i]]

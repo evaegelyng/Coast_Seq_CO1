@@ -6,16 +6,16 @@ library("plyr")
 library("scales")
 library("stringr")
 
+#This script should be run from the "results" folder. 
+
 #Load tables
-setwd("/home/mpavila/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/results")
 otu_mat<-as.matrix(read.table("cleaned_otu_table_ASV_wise.txt", sep="\t", header=T, row.names=1,check.names=F))
 
 OTUt = otu_table(otu_mat, taxa_are_rows = TRUE)
 p_DADAwangt = phyloseq(OTUt)
 
 #Load metadata
-setwd("/home/mpavila/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/results/metadata")
-metadata<-read.table("merged_seq_run_cleaned_metadata_ASV_wise.txt", sep="\t", header=T)
+metadata<-read.table("metadata/merged_seq_run_cleaned_metadata_ASV_wise.txt", sep="\t", header=T)
 sampledata = sample_data(data.frame(metadata, row.names=metadata$sample_ID, stringsAsFactors=FALSE))
 DADAwang1 = merge_phyloseq(p_DADAwangt, sampledata)
 
@@ -39,8 +39,8 @@ cat("\n")
 cat("total_reads_before_singleton_removal")
 sum(sample_sums(pert))
 cat("\n")
-cat("example_sample_with_singleton_seq29_2C10EB1_2_before_removal")
-new_otu_mat["seq29","2C10EB1_2"]
+cat("example_sample_with_singleton_COSQ_000003976_2C10EB1_1_before_removal")
+new_otu_mat["COSQ_000003976","2C10EB1_1"]
 sdptre<-data.frame(sample_data(pert))
 
 for (i in unique(sdptre$root))
@@ -55,8 +55,8 @@ for (i in unique(sdptre$root))
 }
 
 cat("\n")
-cat("example_sample_with_singleton_seq29_2C10EB1_2_after_removal")
-new_otu_mat["seq29","2C10EB1_2"]
+cat("example_sample_with_singleton_COSQ_000003976_2C10EB1_1_after_removal")
+new_otu_mat["COSQ_000003976","2C10EB1_1"]
 
 otu_table(p_tre)<-otu_table(new_otu_mat, taxa_are_rows = TRUE)
 tre = filter_taxa(p_tre, function(x) sum(x) > 0, TRUE)
@@ -71,9 +71,7 @@ shablaw<-as.matrix(data.frame(otu_table(tsa), check.names=F))
 
 #Write files
 
-setwd("/home/mpavila/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/results")
 write.table(shablaw, "no_sing_cleaned_otu_table_ASV_wise.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
-setwd("/home/mpavila/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/results/metadata")
-write.table(data.frame(sample_data(tsa)), "no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(data.frame(sample_data(tsa)), "metadata/no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt", sep="\t", quote=FALSE, row.names=TRUE)
 

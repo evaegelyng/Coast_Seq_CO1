@@ -34,16 +34,11 @@ args = commandArgs(trailingOnly=TRUE)
 #   $all_classifications: this is the table used to make the classified_table. It contains all hits above lower_margin for all ASVs and their classifications (only upper_margin).
 #   ...and the input parameters
 
-# Print the arguments given in the gwf workflow file
-print(args[1])
-print(args[2])
-print(args[3])
-
 # Load required packages
 library(taxizedb) # For retrieving taxonomic classifications
 library(dplyr)
 library(tidyr)
-library(stringr) # For splitting character strings into words
+#library(stringr) # For splitting character strings into words. Only necessary when using BOLD+nt database (see below) 
 
 # Provide API key for NCBI
 options(ENTREZ_KEY="d48b9acccd829282ff4386f716341ed2f608")
@@ -51,8 +46,11 @@ options(ENTREZ_KEY="d48b9acccd829282ff4386f716341ed2f608")
 # Read the completed BLAST results into a table
 IDtable <- read.csv(file = args[1], sep='\t', header=F, as.is=TRUE)
 
-# If using the combined BOLD+nt database, use the following lines to add sscinames
+# If using the GenBank nt database, use the following to add an empty column for ssciname. This is a temporary fix, as we have had problems retrieving scientific names from BLAST against our local reference database.
+# If you would like to have the scientific names of each BLAST hit, try adding "ssciname" to the BLAST command in the gwf workflow file, and do not create the empty column.
+IDtable$V16<-"NA"
 
+# If using a combined BOLD+nt database built with the MARES pipeline, use the following commented lines to add sscinames
 seqtab <- data.frame(readLines("/faststorage/project/eDNA/blastdb/Eukaryota_COI_NOBAR/taxid_process/Eukaryota_informative_name_table.tsv"))
 seqtab$NWord <- sapply(strsplit(as.character(seqtab[,1]), " "), length)
 colnames(seqtab)<-c("Name","NWord")
@@ -66,24 +64,21 @@ seqtab$TaxID <- ifelse(seqtab[,2] == 4,word(seqtab[,1],3,sep=" "),word(seqtab[,1
 
 #Add taxa column to IDtable based on matched TaxIDs
 IDtable$V16 <- seqtab$Taxa[match(IDtable$V15,seqtab$TaxID)]
-
-#Not sure if this is necessary, but we keep it for now
-IDtable$V16<-gsub(" "," ",IDtable$V16)
+IDtable$V16<-gsub(" "," ",IDtable$V16) #This may be unnecessary
 
 # Read the possible problematic taxids as a table
-#MergedTaxIDs<-read.table("~/eDNA/faststorage/blastdb/nt_211111/taxdump/MergedTaxIDs", header=TRUE)
 MergedTaxIDs<-read.table("~/eDNA/faststorage/blastdb/nt_220203/taxdump/MergedTaxIDs", header=TRUE)
 
 # Add header information
 names(IDtable) <- c("qseqid","sseqid","pident","length","mismatch","gapopen","qstart","qend","sstart","send","evalue","bitscore","qlen","qcovs","staxid","ssciname")
 
-# Extract only those rows where the qcovs score is at least 97%. First check if the data contains hits with at least 97% coverage
-    if (max(IDtable$qcovs) >= 97 ) {
-      IDtable <- IDtable[IDtable$qcovs>=97,]  
+# Extract only those rows where the query coverage is 100. First check whether there are in fact any hits with 100% query coverage.
+    if (max(IDtable$qcovs) == 100 ) {
+      IDtable <- IDtable[IDtable$qcovs==100,]  
     } else {
       readr::write_file("", args[2])
-      readr::write_file("", args[3])
-      stop("Query coverage is less than 97% for all hits", call.=FALSE)
+      readr::write_file("", args[3])  
+      stop("Query coverage is less than 100% for all hits", call.=FALSE)
     }
 
 # Extract only those rows where the pident is at least 90%. First check if the data contains hits with at least 90% sequence identity
@@ -158,7 +153,7 @@ for (j in unique (summary$qseqid)) {
   }
 }
 
-#Add summary column to detect possible.misid based on at least one of the preceeding tests (EET: 10/01/2022)
+#Add summary column to detect possible.misid based on at least one of the preceding tests (EET: 10/01/2022)
 summary$possible.misid<-"NA"  
 for (i in unique (summary$qseqid_staxid)) {
   summary[summary$qseqid_staxid==i,]$possible.misid<-ifelse(sum(as.integer(summary[summary$qseqid_staxid==i,]$possible.misid.highrange),as.integer(summary[summary$qseqid_staxid==i,]$possible.misid.outlier), as.integer(summary[summary$qseqid_staxid==i,]$possible.misid.few))>0,1,0)
@@ -244,7 +239,7 @@ prefilter <- function(IDtable, lower_margin=2, remove = c("uncultured", "environ
   return(new_IDtable)
 }
 
-# Function2
+#Function2
 # Get full taxonomic path for all hits within the upper limit of each ASV. Identical species are only queried once.
 
 get_classification <- function(IDtable2) {
@@ -256,8 +251,7 @@ get_classification <- function(IDtable2) {
   Start_from <- 1 # change if loop needs to be restarted due to time-out
   
   no_taxid_matches <- c()
-  remove_entries <- c()
-  
+    
   #Get ncbi classification of each entry
   for (cl in Start_from:o) { # the taxize command "classification" can be run on the all_staxids vector in one line, but often there is
     #a timeout command, therefor this loop workaround.
@@ -351,7 +345,6 @@ evaluate_classification <- function(classified) {
   return(total_result)
 }
 
-
 # Classify your ASVs by running the wrapper (functionX) "assign_taxonomy" like this. Consider whether it makes sense to remove specific hits or taxa from the evaluation (see explanation below):
 my_classified_result <- assign_taxonomy(IDtable, lower_margin = 2, remove = c("uncultured", "environmental")) # EES removed constant upper_margin specification
 
@@ -363,6 +356,12 @@ for (i in unique (tax_table$qseqid)){
    tax_table[tax_table$qseqid==i,]$pident.max.best<-summary[summary$qseqid==i,]$pident.max.best[1]
 }
 
+# Add indication of possible misidentification to tax_table from summary table (EES 25-08-2022)
+tax_table$possible.misid<-"NA"
+for (i in unique (tax_table$qseqid)){
+   tax_table[tax_table$qseqid==i,]$possible.misid<-summary[summary$qseqid==i,]$possible.misid[1]
+}
+                                      
 # Add scientific name of top BLAST hit to tax_table from summary table. This is to inspect hits to taxa in 
 # the BOLD database, which were not in the NCBI taxonomy when the BOLD+NCBI database was made, and which
 # were therefore given a dummy taxid. These hits will produce NAs in the classification, or a wrong
@@ -413,13 +412,7 @@ for(i in tax_table$qseqid){
 }
 
 tax_table$score.id <- score.id
-
-# Add the "possible.misid column" to tax_table from summary table. Not working currently
-#tax_table$possible.misid<-"NA"
-#for (i in unique (tax_table$qseqid)){
-#   tax_table[idx,]$possible.misid<-ifelse(sum(summary[summary$qseqid==i,]$possible.misid==1) > 0,1,0)
-#}
-      
+   
 # Optionally, synonyms of scientific names can be downloaded from an appropriate database (WoRMS in the example below. See "taxize" documentation for other database options).
 # However, it should be stressed that such a search should be complemented with manual searching across databases, as it is unlikely to be exhaustive.
       

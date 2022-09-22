@@ -13,7 +13,7 @@ lib <- as.character(args[1])
 mjolnir8_RAGNAROC <- function(lib,metadata_table="",output_file="",min_reads=2,min_relative=1/50000,sort_MOTUs="id",
                               remove_bacteria=F,remove_contamination=F,contamination_file="contaminants.txt"){
     message("RAGNAROC is coming. Original sample names will be recovered.")
-    if (output_file == "") output_file <- paste0(lib,"_final_dataset_classified.tsv")
+    if (output_file == "") output_file <- paste0(lib,"_final_dataset.tsv")
     #Load the dataset
         # If LULU file exists, load it, otherwise load the All_MOTUs file
         file_to_load <- ifelse(file.exists(paste0(lib,"_Curated_LULU.tsv")),paste0(lib,"_Curated_LULU.tsv"),paste0(lib,"_All_MOTUs_classified.tsv"))
@@ -89,4 +89,4 @@ mjolnir8_RAGNAROC <- function(lib,metadata_table="",output_file="",min_reads=2,m
 }
 
 # RAGNAROC will change the names of the samples to recover the original names and will remove unnecessary columns
-mjolnir8_RAGNAROC(lib,metadata_table="COSQ_metadata_new.tsv")
+mjolnir8_RAGNAROC(lib,metadata_table=as.character(args[2]))

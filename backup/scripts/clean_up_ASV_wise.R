@@ -8,12 +8,10 @@ library("stringr")
 
 #Load tables
 
-#This script should be run from the "results" folder. Have removed setwd() to improve 
-#reproducibility (see e.g. https://stackoverflow.com/questions/13770304/risks-of-using-setwd-in-a-script?noredirect=1&lq=1)
-#setwd("/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results")
+#This script should be run from the "results" folder. 
 
 ###Make phyloseq object from raw data
-otu_mat<-as.matrix(read.table("otu_phyloseq.txt", sep="\t", header=T, row.names=1,check.names=F))
+otu_mat<-as.matrix(read.table("COSQ_otu_phyloseq.txt", sep="\t", header=T, row.names=1,check.names=F))
 
 OTU = otu_table(otu_mat, taxa_are_rows = TRUE)
 
@@ -24,7 +22,7 @@ gc()
 
 #Load metadata
 
-p_metadata<-read.table("COSQ_metadata_complete.txt", sep="\t", header=T)
+p_metadata<-read.table("metadata/COSQ_metadata_complete.txt", sep="\t", header=T)
 p_metadata2<-p_metadata[,-5]
 p_metadata2$sr_PCR_r<-paste(p_metadata2$
 sample_root, p_metadata2$PCR_replicate, sep="_")
@@ -34,7 +32,7 @@ DADAwang1 = merge_phyloseq(p_DADAwang, sampledata)
 DADAwang1 = filter_taxa(DADAwang1, function(x) sum(x) > 0, TRUE)
 DADAwang1
 
-rm(p_DADAwang)
+#rm(p_DADAwang) This should not be necessary - Marcelo agrees
 gc()
 
 ##Merging samples from different runs (separately according to substrate - memory use!)
@@ -96,7 +94,7 @@ extraction_refs$extraction_refs<-sapply(strsplit(as.character(extraction_refs$ex
 
 metadata$extraction_refs<-extraction_refs$extraction_refs[match(metadata$root, extraction_refs$sample_root)]
 
-PSU_refs<-read.table("COSQ_metadata_reps.tsv", sep="\t", header=T)
+PSU_refs<-read.table("metadata/COSQ_metadata_reps.tsv", sep="\t", header=T)
 metadata$PSU_refs<-PSU_refs$PSU[match(metadata$root, PSU_refs$root)]
 metadata$substrate_type<-PSU_refs$substrate_type[match(metadata$root, PSU_refs$root)]
 metadata$season<-PSU_refs$season[match(metadata$root, PSU_refs$root)]
@@ -132,7 +130,6 @@ sum(colSums(utus))
 
 dir.create("cleanup_ASV_wise")
 dir.create("cleanup_ASV_wise/spring")
-setwd("cleanup_ASV_wise/spring")
 
 final_table_s<-subset_samples(final_table2, season=="spring")
 
@@ -181,7 +178,7 @@ for (pr in 1:length(prep)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs 
-  write.table(s_ct[,-1], file=paste("cont_list_sed_ntc_spring",psus[ps],prep[pr],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/spring/cont_list_sed_ntc_spring",psus[ps],prep[pr],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -197,7 +194,7 @@ for (pr in 1:length(prep)){
 sum(colSums(new_otu_mat))-sum(colSums(utus))
 after_ntc_decon_sed_spring<-utus
 
-tmp<-"~/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/"
+tmp<-"../tmp/"
 mandss<-as.matrix(after_ntc_decon_sed_spring)
 saveRDS(mandss, paste(tmp,"mandss.rds",sep=""))
 
@@ -247,7 +244,7 @@ for (pr in 1:length(prep)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs  
-  write.table(s_ct[,-1], file=paste("cont_list_wat_ntc_spring",psus[ps],prep[pr],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/spring/cont_list_wat_ntc_spring",psus[ps],prep[pr],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -307,7 +304,7 @@ for (ps in 1:length(extr)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs  
-  write.table(s_ct[,-1], file=paste("cont_list_sed_extr_spring",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/spring/cont_list_sed_extr_spring",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -363,7 +360,7 @@ for (ps in 1:length(extr)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs  
-  write.table(s_ct[,-1], file=paste("cont_list_wat_extr_spring",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/spring/cont_list_wat_extr_spring",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -420,7 +417,7 @@ for (ps in 1:length(clst)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs  
-  write.table(s_ct[,-1], file=paste("cont_list_wat_clst_spring",clst[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/spring/cont_list_wat_clst_spring",clst[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -448,8 +445,8 @@ gc()
 
 ###AUTUMN
 
-dir.create("~/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results/cleanup_ASV_wise/autumn")
-setwd("~/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results/cleanup_ASV_wise/autumn")
+dir.create("cleanup_ASV_wise/autumn")
+
 final_table_a<-subset_samples(final_table2, season=="autumn")
 
 #Sed decon by PSU set
@@ -495,7 +492,7 @@ for (pr in 1:length(prep)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs 
-  write.table(s_ct[,-1], file=paste("cont_list_sed_ntc_autumn",psus[ps],prep[pr],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/autumn/cont_list_sed_ntc_autumn",psus[ps],prep[pr],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -560,7 +557,7 @@ for (pr in 1:length(prep)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs  
-  write.table(s_ct[,-1], file=paste("cont_list_wat_ntc_autumn",psus[ps],prep[pr],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/autumn/cont_list_wat_ntc_autumn",psus[ps],prep[pr],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -619,7 +616,7 @@ for (ps in 1:length(extr)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs  
-  write.table(s_ct[,-1], file=paste("cont_list_sed_extr_autumn",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/autumn/cont_list_sed_extr_autumn",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -679,7 +676,7 @@ for (ps in 1:length(extr)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs  
-  write.table(s_ct[,-1], file=paste("cont_list_wat_extr_autumn",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/autumn/cont_list_wat_extr_autumn",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -735,7 +732,7 @@ for (ps in 1:length(clst)){
   cat("\n")
   er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs  
-  write.table(s_ct[,-1], file=paste("cont_list_wat_clst_autumn",clst[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/autumn/cont_list_wat_clst_autumn",clst[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
   for (e in 1:length(er_list))
   {
@@ -758,7 +755,7 @@ gc()
 
 ###Write cleaned otu table
 
-write.table(utus, "~/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results/cleaned_otu_table_ASV_wise.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(utus, "cleaned_otu_table_ASV_wise.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
 #
 rm(utus)
@@ -766,12 +763,12 @@ gc()
 
 ###Write cleaned metadata
 
-setwd("/home/mpavila/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/results/metadata")
-write.table(data.frame(sample_data(final_table2), check.names=F), "merged_seq_run_cleaned_metadata_ASV_wise.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(data.frame(sample_data(final_table2), check.names=F), "metadata/merged_seq_run_cleaned_metadata_ASV_wise.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
 ###Summarize and write new ASV table
 
-setwd("/home/mpavila/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/results/cleanup_ASV_wise/summary")
+dir.create("cleanup_ASV_wise/summary")
+summary<-"cleanup_ASV_wise/summary/"
 
 new_otu_ss<-subset_samples(final_table2, season=="spring")
 new_otu_aa<-subset_samples(final_table2, season=="autumn")
@@ -803,19 +800,16 @@ rm(noa, nda)
 gc()
 
 
-setwd("/home/mpavila/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/tmp")
-mandss<-readRDS("mandss.rds")
-mandws<-readRDS("mandws.rds")
-maedss<-readRDS("maedss.rds")
-maedws<-readRDS("maedws.rds")
-macdws<-readRDS("macdws.rds")
-mandsa<-readRDS("mandsa.rds")
-mandwa<-readRDS("mandwa.rds")
-maedsa<-readRDS("maedsa.rds")
-maedwa<-readRDS("maedwa.rds")
-macdwa<-readRDS("macdwa.rds")
-
-setwd("/home/mpavila/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/results/cleanup_ASV_wise/summary")
+mandss<-readRDS("../tmp/mandss.rds")
+mandws<-readRDS("../tmp/mandws.rds")
+maedss<-readRDS("../tmp/maedss.rds")
+maedws<-readRDS("../tmp/maedws.rds")
+macdws<-readRDS("../tmp/macdws.rds")
+mandsa<-readRDS("../tmp/mandsa.rds")
+mandwa<-readRDS("../tmp/mandwa.rds")
+maedsa<-readRDS("../tmp/maedsa.rds")
+maedwa<-readRDS("../tmp/maedwa.rds")
+macdwa<-readRDS("../tmp/macdwa.rds")
 
 andss<-mandss[,colnames(new_m_otu_s)]
 andws<-mandws[,colnames(new_m_otu_s)]
@@ -845,7 +839,7 @@ gc()
 
 summary_clean_up_spring<-cbind(summary_clean_up_spring1,summary_clean_up_spring2,summary_clean_up_spring3)
 colnames(summary_clean_up_spring)<-c("raw","ntc_sed","ntc_wat","cne_sed","cne_wat","cntrl_wat")
-write.table(summary_clean_up_spring,"summary_clean_up_spring.txt")
+write.table(summary_clean_up_spring,paste(summary,"summary_clean_up_spring.txt",sep=""))
 
 scua1<-colSums(new_m_otu_a)
 scua2<-colSums(andsa)
@@ -863,7 +857,7 @@ gc()
 
 summary_clean_up_autumn<-cbind(summary_clean_up_autumn1,summary_clean_up_autumn2,summary_clean_up_autumn3)
 colnames(summary_clean_up_autumn)<-c("raw","ntc_sed","ntc_wat","cne_sed","cne_wat","cntrl_wat")
-write.table(summary_clean_up_autumn,"summary_clean_up_autumn.txt")
+write.table(summary_clean_up_autumn,paste(summary,"summary_clean_up_autumn.txt",sep=""))
 
 
 csn<-colSums(new_m_otu)
@@ -895,11 +889,10 @@ psummary_clean_up_both_seasons<-cbind(scb_1,scb1_1)
 summary_clean_up_both_seasons<-cbind(psummary_clean_up_both_seasons,scb2_1)
 
 colnames(summary_clean_up_both_seasons)<-c("raw","ntc_sed_s","ntc_wat_s","cne_sed_s","cne_wat_s","cntrl_wat_s","ntc_sed_a","ntc_wat_a","cne_sed_a","cne_wat_a","cntrl_wat_a")
-write.table(summary_clean_up_both_seasons,"summary_clean_up_both_seasons.txt")
+write.table(summary_clean_up_both_seasons,paste(summary,"summary_clean_up_both_seasons.txt",sep=""))
 
 ###Test cleaned table
 
-setwd("/home/mpavila/eDNA/faststorage/Velux/CoastSequence/Autumn/Bac16s/both_silva/results")
 otu_matt<-as.matrix(read.table("cleaned_otu_table_ASV_wise.txt", sep="\t", header=T, row.names=1,check.names=F))
 
 OTUt = otu_table(otu_matt, taxa_are_rows = TRUE)

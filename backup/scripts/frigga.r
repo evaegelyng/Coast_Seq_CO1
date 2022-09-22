@@ -26,8 +26,8 @@ mjolnir6_FRIGGA <- function(lib=NULL){
   message("FRYGGA is reading the ecotag-annotated database from THOR...")
   ecotag_db <- read.table(infile,sep="\t",head=T,stringsAsFactors=F)
   message("FRYGGA has read the taxonomy database, with ", nrow(ecotag_db)," total MOTUs.")
-  # Delete "None" from the taxonomy database
-  #ecotag_db[ecotag_db=="None"] <- ""
+  # EES: Replace column name "qseqid" with "id" to allow merging with OTU table (abundance database)
+  colnames(ecotag_db)[2]<-"id"
 
   message("FRYGGA is reading the abundances database from ODIN...")
   abun_db <- read.table(abundances,sep="\t",head=T,stringsAsFactors=F)
@@ -36,8 +36,8 @@ mjolnir6_FRIGGA <- function(lib=NULL){
 
   # Merge databases
   db <- merge(ecotag_db,abun_db,by="id")
-  db$sequence <- db$sequence.y
-  db <- db[substr(names(db),1,9)!="sequence."]
+  #db$sequence <- db$sequence.y
+  #db <- db[substr(names(db),1,9)!="sequence."]
   names(db)[substr(names(db),1,7)=="sample."] <- substr(names(db)[substr(names(db),1,7)=="sample."],8,nchar(names(db)[substr(names(db),1,7)=="sample."]))
 
   # Delete unnecessary columns

@@ -3,6 +3,8 @@ import os, sys
 import math
 from glob import glob
 import io
+import pandas as pd
+import numpy as np
 
 project_name = "COSQ"
 
@@ -105,6 +107,7 @@ output_files.append("tmp/{}.unique.fasta".format(project_name))
 output_files.append("tmp/{}.new.fasta".format(project_name))
 output_files.append("tmp/{}_vsearch.fasta".format(project_name))
 output_files.append("tmp/{}_new.tab".format(project_name))
+output_files.append("tmp/{}_new.tab.names".format(project_name))
 
 all_files = glob("/faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/*/????.unique.fasta")
 
@@ -137,6 +140,9 @@ gwf.target(
             echo "HELA is obtaining a table file with abundances of unique sequence in each sample"
             obitab -o tmp/{project_name}.new.fasta >  tmp/{project_name}.new.tab
             echo "HELA is done."
+            "Making a file containing only sequence names, used for indexing in tab.py script"
+            bashCommand = f'cut -f1 tmp/{project_name}_new.tab > tmp/{project_name}_new.tab.names'
+            runcom = os.system(bashCommand)
         """.format(output=output, project_name=project_name) 
 
 #Using Mjolnir pipeline to perform OTU clustering and denoising. Run separately, as DnoisE was not compatible with the "mjolnir" conda environment. The SWARM clustering itself was done by Owen Wangensteen at UiT, producing the four commented output files below. Replaced "." with "_" in input file names.
@@ -200,40 +206,58 @@ motus_tab_dir="tmp/motu_tab"
 
 #lines=$(wc -l ${MOTUS2RUN} | cut -f1 -d ' ') # Result: 216268
 
-with open(MOTUS2RUN, 'r') as fp:
-    read = fp.readlines() 
-    lines = len(read) # Result: 216269, covering read[0] to reads[216268]. Seems like the
-    #result from bash was incorrect by one line?
+#read MOTUS from motus file
+MOTUS = np.ravel(np.array(pd.read_csv(MOTUS2RUN, header=None)))
 
-for i in range(1,len(read)):
-    motu = read[i].strip()
+CORES=32
+for motu in MOTUS:
+    #motu = read[i].strip()
     input_file = "tmp/{}_new.tab".format(project_name)
-    output_file = "{}/{}".format(motus_tab_dir,motu)
+    output_file = ["{}/{}.log".format(motus_tab_dir,motu), "{}/{}".format(motus_tab_dir,motu)]
         
-    gwf.target(
-                name="tab_{}_{}".format(project_name, i),
+    gwf.target( name=f"tab_{motu}",
                 inputs=input_file,
                 outputs=output_file,
-                cores=1,
-                memory="4g",
-                walltime="2-00:00:00",
-            ) << """
+                cores=CORES,
+                memory="12g",
+                walltime="4:00:00",
+            ) << """ 
                 mkdir -p {motus_tab_dir}
-                scripts/tab.sh {motus_tab_dir} {i} {MOTUS2RUN} {input_file} {motus_dir}
-            """.format(motus_tab_dir=motus_tab_dir, i=i, MOTUS2RUN=MOTUS2RUN, input_file=input_file, motus_dir=motus_dir)
+                rm -f output_file
+                sed "1q;d" {input_file} > {motus_tab_dir}/{motu}
+                cat {motus_dir}/{motu} | xargs -P{CORES} -I {{}} python ./scripts/tab2.py {{}} {input_file} >> {motus_tab_dir}/{motu}
+                echo "hello" > {motus_tab_dir}/{motu}.log
+            """.format(CORES=CORES, 
+            motus_tab_dir=motus_tab_dir, 
+            input_file=input_file, 
+            motu=motu, motus_dir=motus_dir, output_file=output_file)
+
+# Remove trailing spaces from COSQ_vsearch.fasta
+
+input_file = "tmp/{}_vsearch.fasta".format(project_name)
+
+output_file = "tmp/{}_vsearch_no_spaces.fasta".format(project_name)
+
+gwf.target(
+            name="spaces_{}".format(project_name),
+            inputs=input_file,
+            outputs=output_file,
+            cores=1,
+            memory="4g",
+            walltime="00:10:00",            
+        ) << """
+            scripts/remove_spaces.sh {input_file} {output_file}
+        """.format(project_name=project_name, input_file=input_file, output_file=output_file) 
 
 # here the step to retrieve entropy values from the whole dataset
-# Before running, trailing spaces were removed from COSQ_vsearch.fasta
-# using "sed 's/ *$//g' tmp/COSQ_vsearch.fasta > tmp/COSQ_vsearch.fasta"
-# A copy of the original file is saved as COSQ_vsearch_spaces.fasta
 
 DnoisE_dir = "/home/evaes/miniconda3/pkgs/dnoise-1.1-py38_0/lib/python3.8/site-packages/src" 
 
-vsearch_file = "tmp/{}_vsearch.fasta".format(project_name)
+vsearch_file = "tmp/{}_vsearch_no_spaces.fasta".format(project_name)
 
 output_dir = "results"
 
-output_file = "results_entropy_values.csv"
+output_file = "results/results_entropy_values.csv"
 
 gwf.target(
             name="entropy_{}".format(project_name),
@@ -246,6 +270,7 @@ gwf.target(
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate dnoise3
             python3 {DnoisE_dir}/DnoisE.py --fasta_input {vsearch_file} --csv_output {output_dir} -n size -g
+            mv results_entropy_values.csv results
         """.format(project_name=project_name, DnoisE_dir=DnoisE_dir, vsearch_file=vsearch_file, output_dir=output_dir)
 
 # Run DnoisE. Remember to input entropy values from previous target to dnoise.sh
@@ -254,22 +279,14 @@ output_dir = "tmp/output_Ad_corr"
 
 cores = 6
 
-with open(MOTUS2RUN, 'r') as fp:
-    read = fp.readlines() 
-    lines = len(read) # Result: 216269, covering read[0] to reads[216268]. Seems like the
-    #result from bash was incorrect by one line?
-
-for i in range(1,len(read)):
-    motu = read[i].strip()
-
-    input_files = []
-    input_files.append("{}/{}".format(motus_tab_dir,motu))
-    input_files.append(MOTUS2RUN)
-
+for motu in MOTUS:
+    
+    input_files = ["{}/{}".format(motus_tab_dir,motu),"{}/{}.log".format(motus_tab_dir,motu)]
+    
     output_file = "{}/{}_Adcorr_progress.txt".format(output_dir,motu)
         
     gwf.target(
-                name="dnoise_{}_{}".format(project_name, i),
+                name=f"dnoise_{motu}",
                 inputs=input_files,
                 outputs=output_file,
                 cores=6,
@@ -279,8 +296,8 @@ for i in range(1,len(read)):
                 eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
                 conda activate dnoise3
                 mkdir -p {output_dir}
-                scripts/dnoise.sh {i} {MOTUS2RUN} {output_dir} {DnoisE_dir} {motus_tab_dir} {cores}
-            """.format(i=i, MOTUS2RUN=MOTUS2RUN, output_dir=output_dir, DnoisE_dir=DnoisE_dir, motus_tab_dir=motus_tab_dir, cores=cores)
+                scripts/dnoise.sh {motu} {output_dir} {DnoisE_dir} {motus_tab_dir} {cores}
+            """.format(motu=motu, output_dir=output_dir, DnoisE_dir=DnoisE_dir, motus_tab_dir=motus_tab_dir, cores=cores)
 
 #Using obigrep to remove singletons (from last part of ODIN function). 
 
@@ -365,7 +382,7 @@ def taxonomy(taxonomyFolder, blastFolder, k):
     # Check if blast file is empty
     if [ `cat {inputFile} | wc -l` != 0 ]
     then
-      Rscript scripts/taxonomy_bold_nt_220601.r {inputFile} {summaryFile} {outputFile}
+      Rscript scripts/taxonomy_v0.1.1_pident_80.r {inputFile} {summaryFile} {outputFile}
     else
       touch {outputFile}
     fi
@@ -393,48 +410,45 @@ for k in range(1,K+1):
 
 input_files = glob('tmp/taxonomy/summary*.txt')
  
-output_files = ['results/summary.txt']
+output_file = 'results/{}_summary.txt'.format(project_name)
     
 gwf.target(
    name="combine_summary_{}".format(project_name),
    inputs=input_files,
-   outputs=output_files,
+   outputs=output_file,
    cores=1,
    memory="1g",
    walltime="00:10:00",
  ) << """
-    head -n1 tmp/taxonomy/summary.1.txt > results/summary.txt
+    head -n1 tmp/taxonomy/summary.1.txt > results/{project_name}_summary.txt
     for fname in tmp/taxonomy/summary*.txt
     do
-        tail -n +2 $fname >> results/summary.txt
+        tail -n +2 $fname >> results/{project_name}_summary.txt
     done
-   """    
+   """.format(project_name=project_name)    
       
 ### Combine all the small taxonomical classfication files into one large file
 
 input_files = glob('tmp/taxonomy/taxonomy*.txt')
  
-output_files = ['results/classified.txt']
+output_file = 'results/{}_classified.tsv'.format(project_name)
     
 gwf.target(
    name="combine_taxonomy_{}".format(project_name),
    inputs=input_files,
-   outputs=output_files,
+   outputs=output_file,
    cores=1,
    memory="1g",
    walltime="00:10:00",
  ) << """
-    head -n1 tmp/taxonomy/taxonomy.1.txt > results/classified.txt
+    head -n1 tmp/taxonomy/taxonomy.1.txt > results/{project_name}_classified.tsv
     for fname in tmp/taxonomy/taxonomy*.txt
     do
-        tail -n +2 $fname >> results/classified.txt
+        tail -n +2 $fname >> results/{project_name}_classified.tsv
     done
-   """         
+   """.format(project_name=project_name)         
    
-# FRIGGA will integrate the information of MOTU abundances and taxonomy assignment from ODIN & THOR in a single table
-# To conform with the input file format used by FRIGGA, "classified.txt" was reformatted under the name "COSQ_classified.tsv".
-# Most importantly, the column "scientific_name" contains the score-based identifications from the column "score.id",
-# and the column "best_identity" contains the maximum identity values from the column "pident.max.best".
+# FRIGGA will integrate the information of MOTU abundances and taxonomy assignment in a single table
 
 input_files = []
 
@@ -472,7 +486,7 @@ gwf.target(
             outputs=output_files,
             cores=1,
             memory="56g",
-            walltime="12:00:00",
+            walltime="48:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir
@@ -498,7 +512,7 @@ gwf.target(
 
 input_files = glob('tmp/metadata*')
  
-output_file = "results/{}_metadata.tsv".format(project_name)
+output_file = "results/metadata/{}_metadata.tsv".format(project_name)
     
 gwf.target(
    name="metadata_{}".format(project_name),
@@ -508,10 +522,10 @@ gwf.target(
    memory="8g",
    walltime="00:10:00",
  ) << """
-    head -n1 tmp/metadata_S111.tsv > results/COSQ_metadata.tsv
+    head -n1 tmp/metadata_S111.tsv > results/metadata/COSQ_metadata.tsv
     for fname in tmp/metadata*
     do
-        tail -n +2 $fname >> results/COSQ_metadata.tsv
+        tail -n +2 $fname >> results/metadata/COSQ_metadata.tsv
     done
    """   
 
@@ -526,24 +540,23 @@ gwf.target(
 
 # RAGNAROC will change the names of the samples to recover the original names and will remove unnecessary columns
 
-input_files= []
+lulu = "results/{}_Curated_LULU.tsv".format(project_name)
 
-input_files.append("results/{}_metadata_new.tsv".format(project_name))
-input_files.append("results/{}_Curated_LULU.tsv".format(project_name))
-input_files.append("results/{}_All_MOTUs_classified.tsv".format(project_name))
+classified = "results/{}_All_MOTUs_classified.tsv".format(project_name)
 
-output_file = "results/{}_final_dataset_classified.tsv".format(project_name)
+meta_file = "results/metadata/{}_metadata_new.tsv".format(project_name)
+
+output_file = "results/{}_final_dataset.tsv".format(project_name)
 
 gwf.target(
             name="ragnaroc_{}".format(project_name),
-            inputs=input_files,
+            inputs=[lulu, classified, meta_file],
             outputs=output_file,
             cores=1,
-            memory="56g",
-            walltime="4:00:00",
+            memory="5g",
+            walltime="01:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir
-            cd results
-            Rscript ../scripts/ragnaroc.r {project_name}
-        """.format(project_name=project_name)        
+            Rscript scripts/ragnaroc.r results/{project_name} {meta_file}
+        """.format(project_name=project_name, meta_file=meta_file)        

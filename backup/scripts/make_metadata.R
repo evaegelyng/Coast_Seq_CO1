@@ -7,16 +7,19 @@ library("scales")
 library("stringr")
 library("RColorBrewer")
 
-#setwd("/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results")
+#This script should be run from the "results" folder. 
 
 #import data with check.names=F
-mjolnir_output<-read.table("COSQ_final_dataset_classified.tsv", sep="\t", header=T, row.names=1,check.names=F,colClasses="character")
+mjolnir_output<-read.table("COSQ_final_dataset.tsv", sep="\t", header=T, row.names=1,check.names=F,colClasses="character")
+#Check where sample columns begin and end, and extract these columns. 
 n<-ncol(mjolnir_output)
-otu_mat <- mjolnir_output[ -c(n,1:16) ]
+mjolnir_output[1,1:30] 
+mjolnir_output[1,(n-1):n]
+otu_mat <- mjolnir_output[ -c(n,1:26) ]
 
 ###Make phyloseq object from raw data
 f_otu_mat<-as.matrix(sapply(otu_mat, as.numeric))
-#rownames(f_otu_mat)<-rownames(n_otu_mat)
+rownames(f_otu_mat)<-rownames(otu_mat)
 OTU = otu_table(f_otu_mat, taxa_are_rows = TRUE)
 p_DADAwang = phyloseq(OTU)
 
@@ -99,7 +102,7 @@ levels(factor(metadata$extraction_refs))
 head(metadata)
 
 ###Get PSU refs
-PSU_refs<-read.table("COSQ_metadata_reps.tsv", sep="\t", header=T)
+PSU_refs<-read.table("metadata/COSQ_metadata_reps.tsv", sep="\t", header=T)
 head(PSU_refs)
 
 metadata$PSU_refs<-PSU_refs$PSU[match(metadata$root, PSU_refs$root)]
@@ -137,5 +140,5 @@ levels(factor(na$cluster))
 levels(factor(na$season))
 levels(factor(na$field_replicate))
 
-write.table(test_md, "COSQ_metadata_complete.txt", sep="\t", row.names = T, quote=FALSE)
-write.table(f_otu_mat, "otu_phyloseq.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(test_md, "metadata/COSQ_metadata_complete.txt", sep="\t", row.names = T, quote=FALSE)
+write.table(f_otu_mat, "COSQ_otu_phyloseq.txt", sep="\t", quote=FALSE, row.names=TRUE)
