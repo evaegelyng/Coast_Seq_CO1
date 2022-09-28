@@ -11,5 +11,7 @@ otu_mat<-read.table("no_sing_cleaned_otu_table_ASV_wise.txt",sep="\t",check.name
 
 #Merge the two tables
 tax_otu<-merge(tax_mat,otu_mat,by="row.names")
+
+#Rename sequence ID column
 names(tax_otu)[1]<-"id"
 write.table(tax_otu,"COSQ_final_dataset_cleaned.tsv",sep="\t",row.names=F)

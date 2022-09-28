@@ -5,4 +5,4 @@
 
 # This script should be run from the results folder
 
-Rscript "../scripts/clean_up_ASV_wise.R"
+Rscript "../scripts/no_sing_ASV_wise.R"

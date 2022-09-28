@@ -208,29 +208,77 @@ motus_tab_dir="tmp/motu_tab"
 
 #read MOTUS from motus file
 MOTUS = np.ravel(np.array(pd.read_csv(MOTUS2RUN, header=None)))
+#shuffle MOTUS
+np.random.seed(123)
+np.random.shuffle(MOTUS)
+#batches of MOTU names in a dictionary
+Lmotus = len(MOTUS) #nr of MOTUs
+N = 100 #nr of MOTUs in a batch
+B = Lmotus // N #nr batches
+B_last = Lmotus % N #size of last batch
+MOTUSfiles = [] #empty string list with B or B+1 batches
+
+#add a string of N motu paths in each entry
+for i in range(B): 
+    vec = [ f"{MOTUS[i*N+j]}" for j in range(N) ]
+    vec2 = ' '.join(vec)
+    MOTUSfiles.append(vec2)
+#add the last B_last motu if necessary
+if B_last>0:
+    vec = [ f"{MOTUS[B*N+j]}" for j in range(B_last) ]
+    vec2 = ' '.join(vec)
+    MOTUSfiles.append(vec2)
 
 CORES=32
-for motu in MOTUS:
-    #motu = read[i].strip()
+for batch in range(len(MOTUSfiles)):
+    MOTUSlist = MOTUSfiles[batch]
+    MOTUSlist = MOTUSlist.split(' ')
+
+
     input_file = "tmp/{}_new.tab".format(project_name)
-    output_file = ["{}/{}.log".format(motus_tab_dir,motu), "{}/{}".format(motus_tab_dir,motu)]
-        
-    gwf.target( name=f"tab_{motu}",
+    output_file = ["{}/BATCH_{}.log".format(motus_tab_dir,batch)] + ["{}/{}".format(motus_tab_dir,i) for i in MOTUSlist]
+    
+
+    gwf.target( name=f"tab_batch_{batch}",
                 inputs=input_file,
                 outputs=output_file,
                 cores=CORES,
                 memory="12g",
-                walltime="4:00:00",
+                walltime="12:00:00",
             ) << """ 
                 mkdir -p {motus_tab_dir}
                 rm -f output_file
-                sed "1q;d" {input_file} > {motus_tab_dir}/{motu}
-                cat {motus_dir}/{motu} | xargs -P{CORES} -I {{}} python ./scripts/tab2.py {{}} {input_file} >> {motus_tab_dir}/{motu}
-                echo "hello" > {motus_tab_dir}/{motu}.log
-            """.format(CORES=CORES, 
-            motus_tab_dir=motus_tab_dir, 
-            input_file=input_file, 
-            motu=motu, motus_dir=motus_dir, output_file=output_file)
+                for NAME in {MOTUSlist}
+                do
+                    FILENAME=$(echo $NAME | sed 's/,//g')
+                    sed "1q;d" {input_file} > {motus_tab_dir}/$FILENAME
+                    cat {motus_dir}/$FILENAME | xargs -P{CORES} -I {{}} python ./scripts/tab2.py {{}} {input_file} >> {motus_tab_dir}/$FILENAME
+                done
+                echo "hello" > {motus_tab_dir}/BATCH_{batch}.log
+            """.format(CORES=CORES, MOTUSlist=MOTUSlist,
+            motus_tab_dir=motus_tab_dir, motus_dir=motus_dir,
+            input_file=input_file, batch=batch)
+#for motu in MOTUS:
+    #motu = read[i].strip()
+    #input_file = "tmp/{}_new.tab".format(project_name)
+    #output_file = ["{}/{}.log".format(motus_tab_dir,motu), "{}/{}".format(motus_tab_dir,motu)]
+        
+    #gwf.target( name=f"tab_{motu}",
+    #            inputs=input_file,
+    #            outputs=output_file,
+    #            cores=CORES,
+    #            memory="12g",
+    #            walltime="12:00:00",
+    #        ) << """ 
+    #            mkdir -p {motus_tab_dir}
+    #            rm -f output_file
+    #            sed "1q;d" {input_file} > {motus_tab_dir}/{motu}
+    #            cat {motus_dir}/{motu} | xargs -P{CORES} -I {{}} python ./scripts/tab2.py {{}} {input_file} >> {motus_tab_dir}/{motu}
+    #            echo "hello" > {motus_tab_dir}/{motu}.log
+    #        """.format(CORES=CORES, 
+    #        motus_tab_dir=motus_tab_dir, 
+    #        input_file=input_file, 
+    #        motu=motu, motus_dir=motus_dir, output_file=output_file)
 
 # Remove trailing spaces from COSQ_vsearch.fasta
 
@@ -553,8 +601,8 @@ gwf.target(
             inputs=[lulu, classified, meta_file],
             outputs=output_file,
             cores=1,
-            memory="5g",
-            walltime="01:00:00",
+            memory="2g",
+            walltime="00:10:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir
