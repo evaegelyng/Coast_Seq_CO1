@@ -205,15 +205,16 @@ gwf.target(
 motus_tab_dir="tmp/motu_tab"
 
 #lines=$(wc -l ${MOTUS2RUN} | cut -f1 -d ' ') # Result: 216268
+cleanfile="results/{}_final_dataset_cleaned_pident_80.tsv".format(project_name)
 
 #read MOTUS from motus file
-MOTUS = np.ravel(np.array(pd.read_csv(MOTUS2RUN, header=None)))
+MOTUS = np.ravel(np.array(pd.read_csv(cleanfile, sep='\t')["id"]))
 #shuffle MOTUS
 np.random.seed(123)
 np.random.shuffle(MOTUS)
 #batches of MOTU names in a dictionary
 Lmotus = len(MOTUS) #nr of MOTUs
-N = 100 #nr of MOTUs in a batch
+N = 30 #nr of MOTUs in a batch
 B = Lmotus // N #nr batches
 B_last = Lmotus % N #size of last batch
 MOTUSfiles = [] #empty string list with B or B+1 batches
@@ -243,16 +244,20 @@ for batch in range(len(MOTUSfiles)):
                 inputs=input_file,
                 outputs=output_file,
                 cores=CORES,
-                memory="12g",
+                memory="32g",
                 walltime="12:00:00",
             ) << """ 
                 mkdir -p {motus_tab_dir}
                 rm -f output_file
                 for NAME in {MOTUSlist}
                 do
-                    FILENAME=$(echo $NAME | sed 's/,//g')
-                    sed "1q;d" {input_file} > {motus_tab_dir}/$FILENAME
-                    cat {motus_dir}/$FILENAME | xargs -P{CORES} -I {{}} python ./scripts/tab2.py {{}} {input_file} >> {motus_tab_dir}/$FILENAME
+                    FILENAME=$(echo $NAME | sed 's/,//g' | sed 's/[][]//g')
+                    if [ ! -f {motus_tab_dir}/${{FILENAME}}.log ]
+                    then    
+                        sed "1q;d" {input_file} > {motus_tab_dir}/$FILENAME
+                        cat {motus_dir}/$FILENAME | xargs -P{CORES} -I {{}} python ./scripts/tab2.py {{}} {input_file} >> {motus_tab_dir}/$FILENAME
+                        echo "hello" > {motus_tab_dir}/${{FILENAME}}.log
+                    fi
                 done
                 echo "hello" > {motus_tab_dir}/BATCH_{batch}.log
             """.format(CORES=CORES, MOTUSlist=MOTUSlist,
