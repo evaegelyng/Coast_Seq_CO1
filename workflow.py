@@ -154,7 +154,7 @@ gwf.target(
             runcom = os.system(bashCommand)
         """.format(output=output, project_name=project_name) 
 
-#Using Mjolnir pipeline to perform OTU clustering and denoising. Run separately, as DnoisE was not compatible with the "mjolnir" conda environment. The SWARM clustering itself was done by Owen Wangensteen at UiT, producing the four commented output files below. Replaced "." with "_" in input file names.
+#Using Mjolnir pipeline to perform OTU clustering.
  
 input_files = []
 
@@ -163,15 +163,10 @@ input_files.append("tmp/{}.vsearch.fasta".format(project_name))
 
 output_files = []
  
-# SWARM was run separately by O. Wangensteen at UiT, producing the following outputs. However, it could also be run on GenomeDK - this just require 72 cores and almost 2 weeks..
 output_files.append("results/{}_SWARM_seeds.fasta".format(project_name))
 output_files.append("results/{}_SWARM13nc_stats".format(project_name))
 output_files.append("results/{}_SWARM_output".format(project_name))
 output_files.append("results/{}_non_singleton_motu_list.txt".format(project_name))
-
-# DnoisE is run in a separate target for now, producing the following output
-#output_files.append("results/{}_SWARM_output.ESV.csv".format(project_name))
-
 output_files.append("results/{}_SWARM_output_counts.tsv".format(project_name))
 
 gwf.target(
@@ -188,8 +183,7 @@ gwf.target(
             Rscript ../scripts/odin_220224.r ../tmp/{project_name} {project_name}
         """.format(project_name=project_name) 
 
-# Create a file per MOTU with all sequences that clustered into. This part could
-# be parallelized like the next chunk ("tab") to save several days of compute time
+# Create a file per MOTU with all sequences that clustered into. 
 
 input_file = "results/{}_SWARM_output".format(project_name)
 MOTUS2RUN="results/{}_non_singleton_motu_list.txt".format(project_name) # list of MOTUs
@@ -212,18 +206,6 @@ gwf.target(
 # Generate a .tab file for each MOTU with all sample information
 
 motus_tab_dir="tmp/motu_tab"
-
-#lines=$(wc -l ${MOTUS2RUN} | cut -f1 -d ' ') # Result: 216268
-#cleanfile="results/{}_final_dataset_cleaned_pident_80.tsv".format(project_name)
-#Running only MOTUs with min. 80% identity to reference sequences still takes a very long time. 
-#Therefore, will try with only the most abundant 
-#OTUs, as below:
-#p80<-read.table("results/COSQ_final_dataset_cleaned_pident_80.tsv",header=T)
-#p80_met<-p80[which(p80$kingdom=="Metazoa"),]
-#p80_sub<-p80_met[,c("id","total_reads")]
-#p80_abun<-p80_sub[which(p80_sub$total_reads>=100000),]
-#write.table(p80_abun,"results/COSQ_final_dataset_cleaned_pident_80_min_100k_reads.tsv",sep="\t",row.names=F)
-
 cleanfile="results/{}_final_dataset_cleaned_pident_80.tsv".format(project_name)
 
 #read MOTUS from motus file
