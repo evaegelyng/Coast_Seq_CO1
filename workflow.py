@@ -94,6 +94,15 @@ for library_root in libraries:
             """.format(library_id=library_id)      
 
 #Combine fasta files of unique non-chimera sequences from all libraries
+#To determine a minimum read count threshold, the counts were extracted from the first COSQ.new.fasta file 
+# where only singletons were removed.
+#grep "^>" tmp/COSQ.new.fasta | cut -d ";" -f1 > tmp/COSQ.new.counts.tsv
+#sed -i 's/count=//g' tmp/COSQ.new.counts.tsv
+#Go to R
+#counts<-read.table("COSQ.new.counts.tsv",header=FALSE,row.names=1)
+#quantile(counts$V2)
+#     0%     25%     50%     75%    100% 
+#      2       2       3       5 6204614 
 
 input_files = []
 for library_root in libraries:
@@ -105,7 +114,7 @@ output_files = []
 output_files.append("tmp/{}.no_chimeras.fasta".format(project_name))
 output_files.append("tmp/{}.unique.fasta".format(project_name))
 output_files.append("tmp/{}.new.fasta".format(project_name))
-output_files.append("tmp/{}_vsearch.fasta".format(project_name))
+output_files.append("tmp/{}.vsearch.fasta".format(project_name))
 output_files.append("tmp/{}_new.tab".format(project_name))
 output_files.append("tmp/{}_new.tab.names".format(project_name))
 
@@ -131,16 +140,16 @@ gwf.target(
             conda activate mjolnir
             
             cat {output} > tmp/{project_name}.no_chimeras.fasta
-            obiuniq -m sample tmp/{project_name}.no_chimeras.fasta | obigrep -p 'count>1' > tmp/{project_name}.unique.fasta
+            obiuniq -m sample tmp/{project_name}.no_chimeras.fasta | obigrep -p 'count>4' > tmp/{project_name}.unique.fasta
             echo "HELA will change sequence identifiers to a short index"
             obiannotate --seq-rank tmp/{project_name}.unique.fasta | obiannotate --set-identifier \'\"\'"{project_name}"\'_%09d\" % seq_rank\' > tmp/{project_name}.new.fasta
             echo "HELA will change the format to vsearch, so ODIN can use it for SWARM."
             Rscript ./scripts/obi2vsearch.r tmp/{project_name}
             echo "File tmp/{project_name}.vsearch.fasta written."
             echo "HELA is obtaining a table file with abundances of unique sequence in each sample"
-            obitab -o tmp/{project_name}.new.fasta >  tmp/{project_name}.new.tab
+            obitab -o tmp/{project_name}.new.fasta >  tmp/{project_name}_new.tab
             echo "HELA is done."
-            "Making a file containing only sequence names, used for indexing in tab.py script"
+            echo "Making a file containing only sequence names, used for indexing in tab2.py script"
             bashCommand = f'cut -f1 tmp/{project_name}_new.tab > tmp/{project_name}_new.tab.names'
             runcom = os.system(bashCommand)
         """.format(output=output, project_name=project_name) 
@@ -150,15 +159,15 @@ gwf.target(
 input_files = []
 
 input_files.append("tmp/{}_new.tab".format(project_name))
-input_files.append("tmp/{}_vsearch.fasta".format(project_name))
+input_files.append("tmp/{}.vsearch.fasta".format(project_name))
 
 output_files = []
  
 # SWARM was run separately by O. Wangensteen at UiT, producing the following outputs. However, it could also be run on GenomeDK - this just require 72 cores and almost 2 weeks..
-#output_files.append("results/{}_SWARM_seeds.fasta".format(project_name))
-#output_files.append("results/{}_SWARM13nc_stats".format(project_name))
-#output_files.append("results/{}_SWARM_output".format(project_name))
-#output_files.append("results/{}_non_singleton_motu_list.txt".format(project_name))
+output_files.append("results/{}_SWARM_seeds.fasta".format(project_name))
+output_files.append("results/{}_SWARM13nc_stats".format(project_name))
+output_files.append("results/{}_SWARM_output".format(project_name))
+output_files.append("results/{}_non_singleton_motu_list.txt".format(project_name))
 
 # DnoisE is run in a separate target for now, producing the following output
 #output_files.append("results/{}_SWARM_output.ESV.csv".format(project_name))
@@ -171,7 +180,7 @@ gwf.target(
             outputs=output_files,
             cores=18,
             memory="384g",
-            walltime="7-00:00:00",            
+            walltime="4:00:00",            
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate dnoise_2
@@ -205,6 +214,16 @@ gwf.target(
 motus_tab_dir="tmp/motu_tab"
 
 #lines=$(wc -l ${MOTUS2RUN} | cut -f1 -d ' ') # Result: 216268
+#cleanfile="results/{}_final_dataset_cleaned_pident_80.tsv".format(project_name)
+#Running only MOTUs with min. 80% identity to reference sequences still takes a very long time. 
+#Therefore, will try with only the most abundant 
+#OTUs, as below:
+#p80<-read.table("results/COSQ_final_dataset_cleaned_pident_80.tsv",header=T)
+#p80_met<-p80[which(p80$kingdom=="Metazoa"),]
+#p80_sub<-p80_met[,c("id","total_reads")]
+#p80_abun<-p80_sub[which(p80_sub$total_reads>=100000),]
+#write.table(p80_abun,"results/COSQ_final_dataset_cleaned_pident_80_min_100k_reads.tsv",sep="\t",row.names=F)
+
 cleanfile="results/{}_final_dataset_cleaned_pident_80.tsv".format(project_name)
 
 #read MOTUS from motus file
@@ -214,7 +233,7 @@ np.random.seed(123)
 np.random.shuffle(MOTUS)
 #batches of MOTU names in a dictionary
 Lmotus = len(MOTUS) #nr of MOTUs
-N = 30 #nr of MOTUs in a batch
+N = 2 #nr of MOTUs in a batch
 B = Lmotus // N #nr batches
 B_last = Lmotus % N #size of last batch
 MOTUSfiles = [] #empty string list with B or B+1 batches
@@ -263,27 +282,6 @@ for batch in range(len(MOTUSfiles)):
             """.format(CORES=CORES, MOTUSlist=MOTUSlist,
             motus_tab_dir=motus_tab_dir, motus_dir=motus_dir,
             input_file=input_file, batch=batch)
-#for motu in MOTUS:
-    #motu = read[i].strip()
-    #input_file = "tmp/{}_new.tab".format(project_name)
-    #output_file = ["{}/{}.log".format(motus_tab_dir,motu), "{}/{}".format(motus_tab_dir,motu)]
-        
-    #gwf.target( name=f"tab_{motu}",
-    #            inputs=input_file,
-    #            outputs=output_file,
-    #            cores=CORES,
-    #            memory="12g",
-    #            walltime="12:00:00",
-    #        ) << """ 
-    #            mkdir -p {motus_tab_dir}
-    #            rm -f output_file
-    #            sed "1q;d" {input_file} > {motus_tab_dir}/{motu}
-    #            cat {motus_dir}/{motu} | xargs -P{CORES} -I {{}} python ./scripts/tab2.py {{}} {input_file} >> {motus_tab_dir}/{motu}
-    #            echo "hello" > {motus_tab_dir}/{motu}.log
-    #        """.format(CORES=CORES, 
-    #        motus_tab_dir=motus_tab_dir, 
-    #        input_file=input_file, 
-    #        motu=motu, motus_dir=motus_dir, output_file=output_file)
 
 # Remove trailing spaces from COSQ_vsearch.fasta
 
@@ -352,26 +350,6 @@ for motu in MOTUS:
                 scripts/dnoise.sh {motu} {output_dir} {DnoisE_dir} {motus_tab_dir} {cores}
             """.format(motu=motu, output_dir=output_dir, DnoisE_dir=DnoisE_dir, motus_tab_dir=motus_tab_dir, cores=cores)
 
-#Using obigrep to remove singletons (from last part of ODIN function). 
-
-input_file = "results/{}_SWARM_seeds.fasta".format(project_name)
-output_file = "results/{}_seeds_abundant.fasta".format(project_name)
-
-gwf.target(
-            name="nonsingleton_{}_{}".format(project_name, library_id),
-            inputs=input_file,
-            outputs=output_file,
-            cores=8,
-            memory="8g",
-            walltime="2:00:00",
-        ) << """
-            eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
-            conda activate mjolnir
-            echo "ODIN will now remove MOTUs with total abundance less than ",min_reads_MOTU," from the fasta output file, to decrease THOR's workload."
-            obigrep -p 'size>1' {input_file} > {output_file}
-            echo "ODIN is done."
-        """.format(library_id=library_id, input_file=input_file, output_file=output_file) 
-
 ###Split fasta file (the nochim one with chimeras removed) into K parts
 def splitter(inputFile, K=99):
     inputs = [inputFile]
@@ -391,7 +369,7 @@ def splitter(inputFile, K=99):
 
 #####blast a single k-th file
 def blaster(k, outFolder):
-    inputFasta = 'tmp/split/{}_seeds_abundant.part_'.format(project_name)+'{:0>3d}'.format(k)+'.fasta'
+    inputFasta = 'tmp/split/{}_SWARM_seeds.part_'.format(project_name)+'{:0>3d}'.format(k)+'.fasta'
     inputs = [inputFasta]
     outBlast = outFolder + '/blast.' + str(k) + '.blasthits'
     outLog = outFolder + '/blast.' + str(k) + '.txt'
@@ -407,10 +385,10 @@ def blaster(k, outFolder):
     spec = '''
     eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
     conda activate metabar_2021
-    export BLASTDB=/faststorage/project/eDNA/blastdb/Eukaryota_COI_NOBAR/BLAST_db/
+    export BLASTDB=/faststorage/project/eDNA/blastdb/Euk_COI_NOBAR_2022/BLAST_db/
     mkdir -p {out}
     echo "RUNNING THREAD {k} BLAST"
-    blastn -db /faststorage/project/eDNA/blastdb/Eukaryota_COI_NOBAR/BLAST_db/Eukaryota_NOBAR.db -max_target_seqs 500 -num_threads 4 -outfmt "6 std qlen qcovs staxid" -out {outBlast} -qcov_hsp_perc 90 -perc_identity 80 -query {inputFasta}
+    blastn -db /faststorage/project/eDNA/blastdb/Euk_COI_NOBAR_2022/BLAST_db/Eukaryota_NOBAR.db -max_target_seqs 500 -num_threads 4 -outfmt "6 std qlen qcovs staxid" -out {outBlast} -qcov_hsp_perc 90 -perc_identity 70 -query {inputFasta}
     echo "hello" > {outLog}
     echo "DONE THREAD {k}"
     '''.format(out=outFolder, k=k, inputFasta=inputFasta, outBlast=outBlast, outLog=outLog)
@@ -448,11 +426,11 @@ def taxonomy(taxonomyFolder, blastFolder, k):
     '''.format(taxonomyFolder=taxonomyFolder, inputFile=inputFile, summaryFile=summaryFile, outputFile=outputFile) 
     return inputs, outputs, options, spec
 
-inputName = "results/{}_seeds_abundant.fasta".format(project_name)
+inputName = "results/{}_SWARM_seeds.fasta".format(project_name)
 
 gwf.target_from_template( 'split', splitter(inputFile=inputName) )
 
-parts=glob('tmp/split/{}_seeds_abundant.part*.fasta'.format(project_name))
+parts=glob('tmp/split/{}_SWARM_seeds.part*.fasta'.format(project_name))
 K=len(parts)
                                                                 
 for k in range(1,K+1):
@@ -539,7 +517,7 @@ gwf.target(
             outputs=output_files,
             cores=1,
             memory="56g",
-            walltime="48:00:00",
+            walltime="12:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir

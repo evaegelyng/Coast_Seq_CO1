@@ -67,7 +67,8 @@ IDtable$V16 <- seqtab$Taxa[match(IDtable$V15,seqtab$TaxID)]
 IDtable$V16<-gsub(" "," ",IDtable$V16) #This may be unnecessary
 
 # Read the possible problematic taxids as a table
-MergedTaxIDs<-read.table("~/eDNA/faststorage/blastdb/nt_220203/taxdump/MergedTaxIDs", header=TRUE)
+#MergedTaxIDs<-read.table("~/eDNA/faststorage/blastdb/nt_220203/taxdump/MergedTaxIDs", header=TRUE)
+MergedTaxIDs<-read.table("~/eDNA/faststorage/blastdb/Euk_COI_NOBAR_2022/scripts/taxdump_edit/MergedTaxIDs", header=TRUE)
 
 # Add header information
 names(IDtable) <- c("qseqid","sseqid","pident","length","mismatch","gapopen","qstart","qend","sstart","send","evalue","bitscore","qlen","qcovs","staxid","ssciname")

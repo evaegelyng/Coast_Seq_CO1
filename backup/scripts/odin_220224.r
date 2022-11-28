@@ -33,7 +33,7 @@ function(lib,cores,d=13,min_reads_MOTU=2,min_reads_ESV=2,run_swarm=TRUE,generate
   Sys.setenv(PATH = paste(old_path, obipath, sep = ":"))
   if (run_swarm){
     message("ODIN will cluster sequences into MOTUs with SWARM.")
-    system(paste0("swarm -d ",d," -z -t ",cores," -o ",lib,"_SWARM_output_n100 -s ",lib,"_SWARM",d,"nc_stats -w ",lib,"_SWARM_seeds.fasta ",lib_in,"_vsearch.fasta"),intern=T,wait=T)
+    system(paste0("swarm -d ",d," -z -t ",cores," -o ",lib,"_SWARM_output -s ",lib,"_SWARM",d,"nc_stats -w ",lib,"_SWARM_seeds.fasta ",lib_in,".vsearch.fasta"),intern=T,wait=T)
     message("ODIN will recount abundances for every MOTU after Swarm.")
   }
   fileswarm=paste0(lib,"_SWARM_output")
@@ -75,9 +75,9 @@ function(lib,cores,d=13,min_reads_MOTU=2,min_reads_ESV=2,run_swarm=TRUE,generate
   necesarios <- unlist(clusters, use.names=F)
   
   # Generate a file with the list of ids of non-singleton clusters
-  #motulist <- file(paste0(lib,"_non_singleton_motu_list.txt"),"wt")
-  #writeLines(id,motulist)
-  #message("ODIN has created the file ",paste0(lib,"_non_singleton_motu_list.txt")," with the list of identifiers of non-singleton MOTUs.")
+  motulist <- file(paste0(lib,"_non_singleton_motu_list.txt"),"wt")
+  writeLines(id,motulist)
+  message("ODIN has created the file ",paste0(lib,"_non_singleton_motu_list.txt")," with the list of identifiers of non-singleton MOTUs.")
   
   # Read counts database and keep only the needed clusters
   message("ODIN is reading the abundance database. This could take Him a while, since He has just one eye left, after all.")
@@ -144,4 +144,4 @@ function(lib,cores,d=13,min_reads_MOTU=2,min_reads_ESV=2,run_swarm=TRUE,generate
 }
 
 # ODIN will do the clustering & will generate a table with the abundances of each MOTU in each sample
-mjolnir4_ODIN_eva(lib,cores,d=13,run_swarm=FALSE,generate_ESV=FALSE)
+mjolnir4_ODIN_eva(lib,cores,d=13,run_swarm=TRUE,generate_ESV=FALSE)
