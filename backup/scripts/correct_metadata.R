@@ -1,7 +1,7 @@
 setwd("/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/results")
 
 #Read metadata table made from ngsfilter files
-metadata<-read.table("COSQ_metadata.tsv", sep="\t", header=T)
+metadata<-read.table("metadata/COSQ_metadata.tsv", sep="\t", header=T)
 
 #Read table with corrected replicate numbers and resequencing indicated
 reps<-read.table("/home/evaes/eDNA/faststorage/Velux/CoastSequence/Spring/LerayXT/backup/data/raw_data/library_names_reps.csv",sep="\t",header=T)

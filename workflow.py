@@ -485,7 +485,11 @@ gwf.target(
         
 # LOKI will remove the pseudogenes and will keep track of the taxonomic information of the removed MOTUs
         
-input_file= "results/{}_All_MOTUs_classified.tsv".format(project_name)
+input_files= []
+
+input_files.append("results/{}_SWARM_seeds.fasta".format(project_name))
+input_files.append("results/{}_All_MOTUs_classified.tsv".format(project_name))
+
 output_files = []
 
 output_files.append("results/{}_match_list.txt".format(project_name))
@@ -495,7 +499,7 @@ output_files.append("results/{}_Deleted_LULU_fate.tsv".format(project_name))
 
 gwf.target(
             name="loki_{}".format(project_name),
-            inputs=input_file,
+            inputs=input_files,
             outputs=output_files,
             cores=1,
             memory="56g",

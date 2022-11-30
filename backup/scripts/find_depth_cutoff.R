@@ -1,3 +1,5 @@
+#This script should be run from the results folder!
+
 library("phyloseq")
 library("ggplot2")
 library("vegan")
@@ -6,11 +8,10 @@ library("plyr")
 library("scales")
 library("stringr")
 
-#This script should be run from the results folder
 #Load tables
 
 ###Make phyloseq object from raw data
-otu_mat<-as.matrix(read.table("no_sing_cleaned_otu_table_ASV_wise_pident_90.txt", sep="\t", header=T, row.names=1,check.names=F))
+otu_mat<-as.matrix(read.table("no_sing_cleaned_otu_table_ASV_wise.txt", sep="\t", header=T, row.names=1,check.names=F))
 
 taxonomy_raw<-read.table("COSQ_final_dataset_cleaned_220908_PFT_KBD.txt", sep='\t', header=T, comment="")
 row.names(taxonomy_raw)<-taxonomy_raw$id
@@ -22,10 +23,10 @@ TAX_b = tax_table(tax_mat_b)
 p_SILVA = phyloseq(OTU, TAX_b)
 
 #Load metadata
-metadata<-read.table("metadata/pident_90/no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt", sep="\t", header=T)
+metadata<-read.table("metadata/no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt", sep="\t", header=T)
 
 ##SITE INFO
-c_s<-read.table("metadata/pident_90/cluster_site.txt", sep="\t", header=T)
+c_s<-read.table("metadata/cluster_site.txt", sep="\t", header=T)
 metadata$Location<-c_s$Site_name[match(metadata$cluster, c_s$cluster)]
 metadata$cluster<-as.integer(metadata$cluster)
 metadata$cl_se<-as.character(paste(metadata$cluster,metadata$season,sep="_"))
@@ -37,7 +38,7 @@ DADAwang1 = merge_phyloseq(p_SILVA, sampledata)
 ##Now, after interpreting the figures, proceed to normalization in order to nivelate all field replicates at same depth
 
 ##Create final categorization before normalization
-#dir.create("depth_cutoff")
+dir.create("depth_cutoff")
 
 readsi<-sample_sums(DADAwang1)
 combinedi<-cbind(readsi, sample_data(DADAwang1))

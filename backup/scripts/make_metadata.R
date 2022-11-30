@@ -7,7 +7,7 @@ library("scales")
 library("stringr")
 library("RColorBrewer")
 
-#This script should be run from the "results" folder. 
+#This script should be run from the "results" folder, using the metabar_2021 environment. 
 
 #import data with check.names=F
 mjolnir_output<-read.table("COSQ_final_dataset.tsv", sep="\t", header=T, row.names=1,check.names=F,colClasses="character")
