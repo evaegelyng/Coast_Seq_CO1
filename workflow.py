@@ -94,15 +94,28 @@ for library_root in libraries:
             """.format(library_id=library_id)      
 
 #Combine fasta files of unique non-chimera sequences from all libraries
-#To determine a minimum read count threshold, the counts were extracted from the first COSQ.new.fasta file 
-# where only singletons were removed.
-#grep "^>" tmp/COSQ.new.fasta | cut -d ";" -f1 > tmp/COSQ.new.counts.tsv
-#sed -i 's/count=//g' tmp/COSQ.new.counts.tsv
-#Go to R
-#counts<-read.table("COSQ.new.counts.tsv",header=FALSE,row.names=1)
-#quantile(counts$V2)
-#     0%     25%     50%     75%    100% 
-#      2       2       3       5 6204614 
+#To determine a minimum read count threshold, the counts were extracted from the output of obiuniq:
+#obiuniq -m sample tmp/COSQ.no_chimeras.fasta > tmp/COSQ.no_chimeras.fasta.testunique
+#grep "^>" tmp/COSQ.no_chimeras.fasta.testunique | cut -d ";" -f2 > tmp/COSQ.new.counts.testunique.tsv
+#sed -i 's/count=//g' tmp/COSQ.new.counts.testunique.tsv
+#Go to R and do:
+#> counts<-read.table("tmp/COSQ.new.counts.testunique.tsv",header=FALSE)
+#> quantile(counts$V1)
+#    0%    25%    50%    75%   100% 
+#     1      1      1      1 420064 
+#> quantile(counts$V1, seq(0,1,.05))
+#    0%     5%    10%    15%    20%    25%    30%    35%    40%    45%    50% 
+#     1      1      1      1      1      1      1      1      1      1      1 
+#   55%    60%    65%    70%    75%    80%    85%    90%    95%   100% 
+#     1      1      1      1      1      2      2      3      5 420064
+#> quantile(counts$V1, seq(.8,1,.01))
+#   80%    81%    82%    83%    84%    85%    86%    87%    88%    89%    90% 
+#     2      2      2      2      2      2      2      2      2      2      3 
+#   91%    92%    93%    94%    95%    96%    97%    98%    99%   100% 
+#     3      3      3      4      5      6      8     13     27 420064  
+# output of obiuniq has around 4.7Millions unique sequences
+# filtering with count>2 will give around 470K sequences (10% of the total)
+# filtering with count>5 will give around 235K sequences (5% of the total)
 
 input_files = []
 for library_root in libraries:
@@ -118,15 +131,15 @@ output_files.append("tmp/{}.vsearch.fasta".format(project_name))
 output_files.append("tmp/{}_new.tab".format(project_name))
 output_files.append("tmp/{}_new.tab.names".format(project_name))
 
-all_files = glob("/faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/*/????.unique.fasta")
+#all_files = glob("/faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/*/????.unique.fasta")
 
-old_stdout = sys.stdout
-new_stdout = io.StringIO()
-sys.stdout = new_stdout
-print(" ".join(all_files)) 
-output = new_stdout.getvalue()
-sys.stdout = old_stdout   
-output = output.rstrip("\n") 
+#old_stdout = sys.stdout
+#new_stdout = io.StringIO()
+#sys.stdout = new_stdout
+#print(" ".join(all_files)) 
+#output = new_stdout.getvalue()
+#sys.stdout = old_stdout   
+#output = output.rstrip("\n") 
     
 gwf.target(
             name="hela_all_{}".format(project_name),
@@ -134,25 +147,46 @@ gwf.target(
             outputs=output_files,
             cores=2,
             memory="196g",
-            walltime="12:00:00",
+            walltime="4:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir
             
-            cat {output} > tmp/{project_name}.no_chimeras.fasta
-            obiuniq -m sample tmp/{project_name}.no_chimeras.fasta | obigrep -p 'count>4' > tmp/{project_name}.unique.fasta
+            echo "Concatenating " `find /faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/ -name "????.unique.fasta"|wc -l` " Files"
+            cat `find /faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/ -name "????.unique.fasta"` > tmp/{project_name}.no_chimeras.fasta
+            cat {output} > tmp/{project_name}.no_chimeras.fasta ###substitute with 3 commands above
+            
+            echo "Making unique values from the following fasta file " `ls -sh tmp/{project_name}.no_chimeras.fasta`
+            obiuniq -m sample tmp/{project_name}.no_chimeras.fasta > tmp/{project_name}.no_chimeras.unique.fasta
+            
+            #writing occurrences of each number of sequences counts
+            grep "^>" tmp/{project_name}.no_chimeras.unique.fasta | cut -d ";" -f2 > tmp/{project_name}.no_chimeras.unique.counts
+            sed -i 's/count=//g' tmp/{project_name}.no_chimeras.unique.counts
+            sort -n -S 50% --parallel={cores}  tmp/{project_name}.no_chimeras.unique.counts | uniq -c > tmp/{project_name}.no_chimeras.unique.occurrences
+            
+            #finding the threshold using occurrences of each count value
+            Rvalues=(`Rscript --vanilla ../scripts/threshold_choice.R tmp/{project_name}.unique.occurrences.txt`)
+            threshold=${Rvalues[0]}
+            keep=${Rvalues[1]}
+            totalcounts=${Rvalues[2]}
+
+            echo "Keeping" $keep "sequences with more than" $threshold "counts out of" $totalcounts "sequences"
+            obigrep -p 'count>$threshold' sample tmp/{project_name}.no_chimeras.unique.fasta > tmp/{project_name}.unique.fasta
+            
             echo "HELA will change sequence identifiers to a short index"
             obiannotate --seq-rank tmp/{project_name}.unique.fasta | obiannotate --set-identifier \'\"\'"{project_name}"\'_%09d\" % seq_rank\' > tmp/{project_name}.new.fasta
+            
             echo "HELA will change the format to vsearch, so ODIN can use it for SWARM."
             Rscript ./scripts/obi2vsearch.r tmp/{project_name}
+            
             echo "File tmp/{project_name}.vsearch.fasta written."
             echo "HELA is obtaining a table file with abundances of unique sequence in each sample"
             obitab -o tmp/{project_name}.new.fasta >  tmp/{project_name}_new.tab
+            
             echo "HELA is done."
             echo "Making a file containing only sequence names, used for indexing in tab2.py script"
-            bashCommand = f'cut -f1 tmp/{project_name}_new.tab > tmp/{project_name}_new.tab.names'
-            runcom = os.system(bashCommand)
-        """.format(output=output, project_name=project_name) 
+            cut -f1 tmp/{project_name}_new.tab > tmp/{project_name}_new.tab.names
+        """.format(project_name=project_name, cores=cores) 
 
 #Using Mjolnir pipeline to perform OTU clustering.
  
@@ -173,8 +207,8 @@ gwf.target(
             name="odin_{}".format(project_name),
             inputs=input_files,
             outputs=output_files,
-            cores=18,
-            memory="384g",
+            cores=4,
+            memory="16g",
             walltime="4:00:00",            
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
@@ -267,9 +301,9 @@ for batch in range(len(MOTUSfiles)):
 
 # Remove trailing spaces from COSQ_vsearch.fasta
 
-input_file = "tmp/{}_vsearch.fasta".format(project_name)
+input_file = "tmp/{}.vsearch.fasta".format(project_name)
 
-output_file = "tmp/{}_vsearch_no_spaces.fasta".format(project_name)
+output_file = "tmp/{}.vsearch_no_spaces.fasta".format(project_name)
 
 gwf.target(
             name="spaces_{}".format(project_name),
@@ -286,7 +320,7 @@ gwf.target(
 
 DnoisE_dir = "/home/evaes/miniconda3/pkgs/dnoise-1.1-py38_0/lib/python3.8/site-packages/src" 
 
-vsearch_file = "tmp/{}_vsearch_no_spaces.fasta".format(project_name)
+vsearch_file = "tmp/{}.vsearch_no_spaces.fasta".format(project_name)
 
 output_dir = "results"
 
@@ -502,8 +536,8 @@ gwf.target(
             inputs=input_files,
             outputs=output_files,
             cores=1,
-            memory="56g",
-            walltime="12:00:00",
+            memory="2g",
+            walltime="01:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir
