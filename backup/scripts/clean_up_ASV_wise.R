@@ -160,7 +160,7 @@ for (pr in 1:length(prep)){
   contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)  
   ag_contam2<-data.frame(otu_table(contam2))
   ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
   contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
   ncontam<-subset_samples(data_sedi, !source=="NTC"&PSU_refs==psus[ps]&PCR_replicate==prep[pr])
@@ -168,7 +168,7 @@ for (pr in 1:length(prep)){
   ag_ncontam2<-data.frame(otu_table(ncontam2))
   r_ag_ncontam2<-ag_ncontam2
   ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
   s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################
@@ -226,7 +226,7 @@ for (pr in 1:length(prep)){
   contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
   ag_contam2<-data.frame(otu_table(contam2))
   ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
   contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
   ncontam<-subset_samples(data_wate, !source=="NTC"&PSU_refs==psus[ps]&PCR_replicate==prep[pr])
@@ -234,7 +234,7 @@ for (pr in 1:length(prep)){
   ag_ncontam2<-data.frame(otu_table(ncontam2))
   r_ag_ncontam2<-ag_ncontam2
   ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
   s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################
@@ -275,7 +275,7 @@ pdata_sedi<-subset_samples(final_table_s, substrate_type=="sediment")
 cnes<-pdata_sedi@sam_data[which(pdata_sedi@sam_data$source=="CNE"),]
 levels(factor(cnes$extraction_refs))
 #Input these CNE refs in the below command
-data_sedi<-subset_samples(pdata_sedi, extraction_refs=="S6")
+data_sedi<-subset_samples(pdata_sedi, extraction_refs=="S6" | extraction_refs=="S18")
 
 tm<-data.frame(sample_data(data_sedi))
 extr<-levels(as.factor(tm[,"extraction_refs"]))
@@ -291,7 +291,7 @@ for (ps in 1:length(extr)){
   contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
   ag_contam2<-data.frame(otu_table(contam2))
   ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
   contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
   ncontam<-subset_samples(data_sedi, !source=="CNE"&extraction_refs==extr[ps])
@@ -299,7 +299,7 @@ for (ps in 1:length(extr)){
   ag_ncontam2<-data.frame(otu_table(ncontam2))
   r_ag_ncontam2<-ag_ncontam2
   ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
   s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################
@@ -337,7 +337,7 @@ pdata_wate<-subset_samples(final_table_s, substrate_type=="water")
 cnes<-pdata_wate@sam_data[which(pdata_wate@sam_data$source=="CNE"),]
 levels(factor(cnes$extraction_refs))
 #Input these CNE refs in the below command
-data_wate<-subset_samples(pdata_wate, extraction_refs=="B10" | extraction_refs=="B19" | extraction_refs=="B20"| extraction_refs=="B23"| extraction_refs=="B24")
+data_wate<-subset_samples(pdata_wate, extraction_refs=="B10" | extraction_refs=="B11" | extraction_refs=="B19" | extraction_refs=="B20"| extraction_refs=="B23"| extraction_refs=="B24")
 
 tm<-data.frame(sample_data(data_wate))
 extr<-levels(as.factor(tm[,"extraction_refs"]))
@@ -353,7 +353,7 @@ for (ps in 1:length(extr)){
   contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
   ag_contam2<-data.frame(otu_table(contam2))
   ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
   contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
   ncontam<-subset_samples(data_wate, !source=="CNE"&extraction_refs==extr[ps])
@@ -361,7 +361,7 @@ for (ps in 1:length(extr)){
   ag_ncontam2<-data.frame(otu_table(ncontam2))
   r_ag_ncontam2<-ag_ncontam2
   ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
   s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################
@@ -414,7 +414,7 @@ for (ps in 1:length(clst)){
   contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
   ag_contam2<-data.frame(otu_table(contam2))
   ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
   contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
   ncontam<-subset_samples(data_wate, source=="Field_sample"&cluster==clst[ps])
@@ -422,7 +422,7 @@ for (ps in 1:length(clst)){
   ag_ncontam2<-data.frame(otu_table(ncontam2))
   r_ag_ncontam2<-ag_ncontam2
   ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
   s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################
@@ -488,7 +488,7 @@ for (pr in 1:length(prep)){
   contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
   ag_contam2<-data.frame(otu_table(contam2),check.names=F)
   ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
   contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
   ncontam<-subset_samples(data_sedi, !source=="NTC"&PSU_refs==psus[ps]&PCR_replicate==prep[pr])
@@ -496,7 +496,7 @@ for (pr in 1:length(prep)){
   ag_ncontam2<-data.frame(otu_table(ncontam2),check.names=F)
   r_ag_ncontam2<-ag_ncontam2
   ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
   s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################
@@ -553,7 +553,7 @@ for (pr in 1:length(prep)){
   contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
   ag_contam2<-data.frame(otu_table(contam2),check.names=F)
   ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
   contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
   ncontam<-subset_samples(data_wate, !source=="NTC"&PSU_refs==psus[ps]&PCR_replicate==prep[pr])
@@ -561,7 +561,7 @@ for (pr in 1:length(prep)){
   ag_ncontam2<-data.frame(otu_table(ncontam2),check.names=F)
   r_ag_ncontam2<-ag_ncontam2
   ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
   s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")],   ag_contam2[, c("max_control", "sum_control")])
 ###################################################
@@ -618,7 +618,7 @@ for (ps in 1:length(extr)){
   contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
   ag_contam2<-data.frame(otu_table(contam2),check.names=F)
   ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
   contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
   ncontam<-subset_samples(data_sedi, !source=="CNE"&extraction_refs==extr[ps])
@@ -626,7 +626,7 @@ for (ps in 1:length(extr)){
   ag_ncontam2<-data.frame(otu_table(ncontam2),check.names=F)
   r_ag_ncontam2<-ag_ncontam2
   ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
   s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################
@@ -681,7 +681,7 @@ data_wate@sam_data #No samples are left, so this decontamination step cannot be 
 #  contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
 #  ag_contam2<-data.frame(otu_table(contam2),check.names=F)
 #  ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-#  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+#  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
 #  contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
 #  ncontam<-subset_samples(data_wate, !source=="CNE"&extraction_refs==extr[ps])
@@ -689,7 +689,7 @@ data_wate@sam_data #No samples are left, so this decontamination step cannot be 
 #  ag_ncontam2<-data.frame(otu_table(ncontam2),check.names=F)
 #  r_ag_ncontam2<-ag_ncontam2
 #  ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-#  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+#  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
 #  s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################
@@ -746,7 +746,7 @@ for (ps in 1:length(clst)){
   contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
   ag_contam2<-data.frame(otu_table(contam2),check.names=F)
   ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, sum)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
   contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
   ncontam<-subset_samples(data_wate, source=="Field_sample"&cluster==clst[ps])
@@ -754,7 +754,7 @@ for (ps in 1:length(clst)){
   ag_ncontam2<-data.frame(otu_table(ncontam2),check.names=F)
   r_ag_ncontam2<-ag_ncontam2
   ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, sum)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
   s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################

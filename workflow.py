@@ -94,28 +94,7 @@ for library_root in libraries:
             """.format(library_id=library_id)      
 
 #Combine fasta files of unique non-chimera sequences from all libraries
-#To determine a minimum read count threshold, the counts were extracted from the output of obiuniq:
-#obiuniq -m sample tmp/COSQ.no_chimeras.fasta > tmp/COSQ.no_chimeras.fasta.testunique
-#grep "^>" tmp/COSQ.no_chimeras.fasta.testunique | cut -d ";" -f2 > tmp/COSQ.new.counts.testunique.tsv
-#sed -i 's/count=//g' tmp/COSQ.new.counts.testunique.tsv
-#Go to R and do:
-#> counts<-read.table("tmp/COSQ.new.counts.testunique.tsv",header=FALSE)
-#> quantile(counts$V1)
-#    0%    25%    50%    75%   100% 
-#     1      1      1      1 420064 
-#> quantile(counts$V1, seq(0,1,.05))
-#    0%     5%    10%    15%    20%    25%    30%    35%    40%    45%    50% 
-#     1      1      1      1      1      1      1      1      1      1      1 
-#   55%    60%    65%    70%    75%    80%    85%    90%    95%   100% 
-#     1      1      1      1      1      2      2      3      5 420064
-#> quantile(counts$V1, seq(.8,1,.01))
-#   80%    81%    82%    83%    84%    85%    86%    87%    88%    89%    90% 
-#     2      2      2      2      2      2      2      2      2      2      3 
-#   91%    92%    93%    94%    95%    96%    97%    98%    99%   100% 
-#     3      3      3      4      5      6      8     13     27 420064  
-# output of obiuniq has around 4.7Millions unique sequences
-# filtering with count>2 will give around 470K sequences (10% of the total)
-# filtering with count>5 will give around 235K sequences (5% of the total)
+#To determine a minimum read count threshold, the counts are extracted from the output of obiuniq
 
 input_files = []
 for library_root in libraries:
@@ -140,22 +119,23 @@ output_files.append("tmp/{}_new.tab.names".format(project_name))
 #output = new_stdout.getvalue()
 #sys.stdout = old_stdout   
 #output = output.rstrip("\n") 
-    
+cores=2
+
 gwf.target(
             name="hela_all_{}".format(project_name),
             inputs=input_files,
             outputs=output_files,
-            cores=2,
-            memory="196g",
-            walltime="4:00:00",
+            cores=cores,
+            memory="164g",
+            walltime="12:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir
             
+            #concatenate into main fasta file
             echo "Concatenating " `find /faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/ -name "????.unique.fasta"|wc -l` " Files"
-            cat `find /faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/ -name "????.unique.fasta"` > tmp/{project_name}.no_chimeras.fasta
-            cat {output} > tmp/{project_name}.no_chimeras.fasta ###substitute with 3 commands above
-            
+            #cat `find /faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/ -name "????.unique.fasta"` > tmp/{project_name}.no_chimeras.fasta
+                        
             echo "Making unique values from the following fasta file " `ls -sh tmp/{project_name}.no_chimeras.fasta`
             obiuniq -m sample tmp/{project_name}.no_chimeras.fasta > tmp/{project_name}.no_chimeras.unique.fasta
             
@@ -166,9 +146,9 @@ gwf.target(
             
             #finding the threshold using occurrences of each count value
             Rvalues=(`Rscript --vanilla ../scripts/threshold_choice.R tmp/{project_name}.unique.occurrences.txt`)
-            threshold=${Rvalues[0]}
-            keep=${Rvalues[1]}
-            totalcounts=${Rvalues[2]}
+            threshold=${{Rvalues[0]}}
+            keep=${{Rvalues[1]}}
+            totalcounts=${{Rvalues[2]}}
 
             echo "Keeping" $keep "sequences with more than" $threshold "counts out of" $totalcounts "sequences"
             obigrep -p 'count>$threshold' sample tmp/{project_name}.no_chimeras.unique.fasta > tmp/{project_name}.unique.fasta

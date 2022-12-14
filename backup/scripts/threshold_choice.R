@@ -16,7 +16,7 @@ table[,"Variation"] = +Inf
 
 table[1:(dim(table)[1]-1),"Variation"] = table[1:(dim(table)[1]-1),"Occurrences"]/table[2:dim(table)[1],"Occurrences"]
 
-thr = min(which(table["Variation"]<3))
+thr = min(which(table["Variation"]<1.5))
 occ = sum(table[(thr+1):(dim(table)[1]),"Occurrences"])
 all_occ = sum(table[,"Occurrences"])
 
