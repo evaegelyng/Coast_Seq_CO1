@@ -126,7 +126,7 @@ gwf.target(
             inputs=input_files,
             outputs=output_files,
             cores=cores,
-            memory="164g",
+            memory="32g",
             walltime="12:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
@@ -137,21 +137,23 @@ gwf.target(
             #cat `find /faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/ -name "????.unique.fasta"` > tmp/{project_name}.no_chimeras.fasta
                         
             echo "Making unique values from the following fasta file " `ls -sh tmp/{project_name}.no_chimeras.fasta`
-            obiuniq -m sample tmp/{project_name}.no_chimeras.fasta > tmp/{project_name}.no_chimeras.unique.fasta
+            #obiuniq -m sample tmp/{project_name}.no_chimeras.fasta > tmp/{project_name}.no_chimeras.unique.fasta
             
             #writing occurrences of each number of sequences counts
-            grep "^>" tmp/{project_name}.no_chimeras.unique.fasta | cut -d ";" -f2 > tmp/{project_name}.no_chimeras.unique.counts
-            sed -i 's/count=//g' tmp/{project_name}.no_chimeras.unique.counts
-            sort -n -S 50% --parallel={cores}  tmp/{project_name}.no_chimeras.unique.counts | uniq -c > tmp/{project_name}.no_chimeras.unique.occurrences
+            #grep "^>" tmp/{project_name}.no_chimeras.unique.fasta | cut -d ";" -f2 > tmp/{project_name}.no_chimeras.unique.counts
+            #sed -i 's/count=//g' tmp/{project_name}.no_chimeras.unique.counts
+            #sort -n -S 50% --parallel={cores}  tmp/{project_name}.no_chimeras.unique.counts | uniq -c > tmp/{project_name}.no_chimeras.unique.occurrences.txt
             
             #finding the threshold using occurrences of each count value
-            Rvalues=(`Rscript --vanilla ../scripts/threshold_choice.R tmp/{project_name}.unique.occurrences.txt`)
+            Rvalues=(`Rscript --vanilla scripts/threshold_choice.R tmp/{project_name}.no_chimeras.unique.occurrences.txt`)
             threshold=${{Rvalues[0]}}
             keep=${{Rvalues[1]}}
             totalcounts=${{Rvalues[2]}}
 
             echo "Keeping" $keep "sequences with more than" $threshold "counts out of" $totalcounts "sequences"
-            obigrep -p 'count>$threshold' sample tmp/{project_name}.no_chimeras.unique.fasta > tmp/{project_name}.unique.fasta
+            parameter=`echo "'count>"$threshold"'"`
+            cmd="obigrep -p $parameter tmp/{project_name}.no_chimeras.unique.fasta > tmp/{project_name}.unique.fasta"
+            #eval $cmd
             
             echo "HELA will change sequence identifiers to a short index"
             obiannotate --seq-rank tmp/{project_name}.unique.fasta | obiannotate --set-identifier \'\"\'"{project_name}"\'_%09d\" % seq_rank\' > tmp/{project_name}.new.fasta
@@ -187,9 +189,9 @@ gwf.target(
             name="odin_{}".format(project_name),
             inputs=input_files,
             outputs=output_files,
-            cores=4,
-            memory="16g",
-            walltime="4:00:00",            
+            cores=32,
+            memory="364g",
+            walltime="7-00:00:00",            
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate dnoise_2

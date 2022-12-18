@@ -6,7 +6,7 @@ lib_in <- as.character(args[1])
 # Input name for the final combined library (should be a 4-character name)
 lib <- as.character(args[2])
 
-cores <- 4
+cores <- 32
  
 # ODIN: OTU Delimitation Inferred by Networks
 
