@@ -96,7 +96,7 @@ function(lib,cores,d=13,min_reads_MOTU=2,min_reads_ESV=2,run_swarm=TRUE,generate
   
   message("4. ODIN will now calculate the number of reads in every sample for each MOTU.")
   db.total <- split(db[,grepl('sample',names(db))], db$MOTU)
-  db.total <- mclapply(db.total,function(x)as.data.frame(t(as.matrix(c(count=sum(x),colSums(x),CLUST_WEIGHT=dim(x)[1])))), mc.cores = cores)
+  db.total <- mclapply(db.total,function(x)as.data.frame(t(as.matrix(c(count=sum(x),colSums(x),CLUST_WgitEIGHT=dim(x)[1])))), mc.cores = cores)
   db.total <- do.call(rbind,db.total)
   db.total <- cbind(data.frame(id=rownames(db.total)), db.total)
   db.total <- merge(db.total,db[,grepl('id|sequence',names(db))],by = "id")
