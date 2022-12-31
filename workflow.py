@@ -171,6 +171,7 @@ gwf.target(
         """.format(project_name=project_name, cores=cores) 
 
 #Using Mjolnir pipeline to perform OTU clustering.
+#NB! Move last line of R script to workflow
  
 input_files = []
 
@@ -349,6 +350,7 @@ for motu in MOTUS:
             """.format(motu=motu, output_dir=output_dir, DnoisE_dir=DnoisE_dir, motus_tab_dir=motus_tab_dir, cores=cores)
 
 ###Split fasta file (the nochim one with chimeras removed) into K parts
+#NB! Should add removal of old index file, as this seems to not be overwritten
 def splitter(inputFile, K=99):
     inputs = [inputFile]
     outputs = ["tmp/split/split.log.txt"]
@@ -518,8 +520,8 @@ gwf.target(
             inputs=input_files,
             outputs=output_files,
             cores=1,
-            memory="2g",
-            walltime="01:00:00",
+            memory="32g",
+            walltime="12:00:00",
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate mjolnir

@@ -271,11 +271,13 @@ cat("spring_sed_CNE")
 #Subset substrate type (sediment)
 otu_table(final_table_s) = otu_table(after_ntc_decon_sed_spring, taxa_are_rows = TRUE)
 pdata_sedi<-subset_samples(final_table_s, substrate_type=="sediment")
-####exclude missing CNE refs, i.e. extraction sets with no CNEs in the final dataset
+#Check whether any extraction sets are missing a CNE
+samples<-pdata_sedi@sam_data[which(pdata_sedi@sam_data$source=="Field_sample"),]
+levels(factor(samples$extraction_refs))
 cnes<-pdata_sedi@sam_data[which(pdata_sedi@sam_data$source=="CNE"),]
 levels(factor(cnes$extraction_refs))
-#Input these CNE refs in the below command
-data_sedi<-subset_samples(pdata_sedi, extraction_refs=="S6" | extraction_refs=="S18")
+#Exclude extraction sets with no CNEs in the final dataset
+data_sedi<-subset_samples(pdata_sedi, !extraction_refs=="S2" & !extraction_refs=="S4")
 
 tm<-data.frame(sample_data(data_sedi))
 extr<-levels(as.factor(tm[,"extraction_refs"]))
@@ -333,11 +335,14 @@ cat("spring_wat_CNE")
 #Subset substrate type (water)
 otu_table(final_table_s) = otu_table(after_ntc_decon_wat_spring, taxa_are_rows = TRUE)
 pdata_wate<-subset_samples(final_table_s, substrate_type=="water")
-####exclude extraction sets with no CNEs in the final dataset
+#Check whether any extraction sets are missing a CNE
+samples<-pdata_wate@sam_data[which(pdata_wate@sam_data$source=="Field_sample"),]
+levels(factor(samples$extraction_refs))
 cnes<-pdata_wate@sam_data[which(pdata_wate@sam_data$source=="CNE"),]
 levels(factor(cnes$extraction_refs))
-#Input these CNE refs in the below command
-data_wate<-subset_samples(pdata_wate, extraction_refs=="B10" | extraction_refs=="B11" | extraction_refs=="B19" | extraction_refs=="B20"| extraction_refs=="B23"| extraction_refs=="B24")
+#Exclude extraction sets with no CNEs in the final dataset
+#data_wate<-subset_samples(pdata_wate, !extraction_refs=="XX") # No CNEs were missing
+data_wate<-pdata_wate
 
 tm<-data.frame(sample_data(data_wate))
 extr<-levels(as.factor(tm[,"extraction_refs"]))
@@ -596,13 +601,16 @@ gc()
 #Sed decon by extraction set
 cat("autumn_sed_CNE")
 #Subset substrate type (sediment)
-####exclude extraction sets with no CNEs in the final dataset
 otu_table(final_table_a) = otu_table(after_ntc_decon_sed_autumn, taxa_are_rows = TRUE)
 pdata_sedi<-subset_samples(final_table_a, substrate_type=="sediment")
+#Check whether any extraction sets are missing a CNE
+samples<-pdata_sedi@sam_data[which(pdata_sedi@sam_data$source=="Field_sample"),]
+levels(factor(samples$extraction_refs))
 cnes<-pdata_sedi@sam_data[which(pdata_sedi@sam_data$source=="CNE"),]
 levels(factor(cnes$extraction_refs))
-#Add these CNE refs to the command below
-data_sedi<-subset_samples(pdata_sedi, extraction_refs=="2CVS4" | extraction_refs=="2CVS5" |extraction_refs== "2CVS6" | extraction_refs=="2CVS7")
+#Exclude extraction sets with no CNEs in the final dataset
+#data_sedi<-subset_samples(pdata_sedi, !extraction_refs=="2CVS4") # No CNEs were missing
+data_sedi<-pdata_sedi
 
 tm<-data.frame(sample_data(data_sedi))
 extr<-levels(as.factor(tm[,"extraction_refs"]))
@@ -660,70 +668,69 @@ cat("autumn_wat_CNE")
 #Subset substrate type (water)
 otu_table(final_table_a) = otu_table(after_ntc_decon_wat_autumn, taxa_are_rows = TRUE)
 pdata_wate<-subset_samples(final_table_a, substrate_type=="water")
-####exclude extraction sets with no CNEs in the final dataset
+#Check whether any extraction sets are missing a CNE
+samples<-pdata_wate@sam_data[which(pdata_wate@sam_data$source=="Field_sample"),]
+levels(factor(samples$extraction_refs))
 cnes<-pdata_wate@sam_data[which(pdata_wate@sam_data$source=="CNE"),]
 levels(factor(cnes$extraction_refs))
-#Input these CNE refs in the below command
-data_wate<-subset_samples(pdata_wate, extraction_refs=="MPAA2")
-data_wate@sam_data #No samples are left, so this decontamination step cannot be run
+#Exclude extraction sets with no CNEs in the final dataset
+data_wate<-subset_samples(pdata_wate, !extraction_refs=="MPAA15")
 
-#tm<-data.frame(sample_data(data_wate))
-#extr<-levels(as.factor(tm[,"extraction_refs"]))
+tm<-data.frame(sample_data(data_wate))
+extr<-levels(as.factor(tm[,"extraction_refs"]))
 
-#for (ps in 1:length(extr)){
+for (ps in 1:length(extr)){
 #summarize contaminants per extraction.
-#  contam<-subset_samples(data_wate, source=="CNE"&extraction_refs==extr[ps])  
-#  if(sum(colSums(otu_table(contam)))==0) next
-#  cat(extr[ps])
-#  cat("\n")
+  contam<-subset_samples(data_wate, source=="CNE"&extraction_refs==extr[ps])  
+  if(sum(colSums(otu_table(contam)))==0) next
+  cat(extr[ps])
+  cat("\n")
 ################################################################# 
-#  p_contam2 = filter_taxa(contam, function(x) sum(x) > 0, TRUE)
-#  contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
-#  ag_contam2<-data.frame(otu_table(contam2),check.names=F)
-#  ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
-#  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
-#  contam_list<-taxa_names(contam2)
+  p_contam2 = filter_taxa(contam, function(x) sum(x) > 0, TRUE)
+  contam2 = prune_samples(sample_sums(p_contam2)>0,p_contam2)
+  ag_contam2<-data.frame(otu_table(contam2),check.names=F)
+  ag_contam2[, "max_control"] <- apply(ag_contam2, 1, max)
+  ag_contam2[, "sum_control"] <- apply(ag_contam2, 1, function(x) sum(x)-max(x))
+  contam_list<-taxa_names(contam2)
 #summarize contaminants in field samples  
-#  ncontam<-subset_samples(data_wate, !source=="CNE"&extraction_refs==extr[ps])
-#  ncontam2 = prune_taxa(contam_list, ncontam)
-#  ag_ncontam2<-data.frame(otu_table(ncontam2),check.names=F)
-#  r_ag_ncontam2<-ag_ncontam2
-#  ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
-#  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
+  ncontam<-subset_samples(data_wate, !source=="CNE"&extraction_refs==extr[ps])
+  ncontam2 = prune_taxa(contam_list, ncontam)
+  ag_ncontam2<-data.frame(otu_table(ncontam2),check.names=F)
+  r_ag_ncontam2<-ag_ncontam2
+  ag_ncontam2[, "max_field"] <- apply(ag_ncontam2, 1, max)
+  ag_ncontam2[, "sum_field"] <- apply(ag_ncontam2, 1, function(x) sum(x)-max(x))
 #merge the controls and field samples' summaries  
-#  s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
+  s_ct<-cbind(taxa_names(contam2), ag_ncontam2[, c("max_field", "sum_field")], ag_contam2[, c("max_control", "sum_control")])
 ###################################################
-#  if(length(unique(s_ct$max_control-s_ct$max_field>0))==1 && unique(s_ct$max_control-s_ct$max_field>0)==FALSE) next
-#  cat(extr[ps])
-#  cat("\n")
-#  er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
+  if(length(unique(s_ct$max_control-s_ct$max_field>0))==1 && unique(s_ct$max_control-s_ct$max_field>0)==FALSE) next
+  cat(extr[ps])
+  cat("\n")
+  er_list<-rownames(subset(s_ct,s_ct$max_control-s_ct$max_field>0))
 #save list of contaminant OTUs  
-#  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/autumn/cont_list_wat_extr_autumn",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
+  write.table(s_ct[,-1], file=paste("cleanup_ASV_wise/autumn/cont_list_wat_extr_autumn",extr[ps],".txt", sep="_"), quote=FALSE, sep='\t', row.names=TRUE)
 #Fix otu_table  (set 0 for OTUs with control counts > field samples counts)
-#  for (e in 1:length(er_list))
-#  {
-#    for (i in 1:ncol(r_ag_ncontam2))
-#    {
-#      utus[er_list[e], colnames(r_ag_ncontam2)[i]]<-0  
-#    }
-#  }
-#}
+  for (e in 1:length(er_list))
+  {
+    for (i in 1:ncol(r_ag_ncontam2))
+    {
+      utus[er_list[e], colnames(r_ag_ncontam2)[i]]<-0  
+    }
+  }
+}
 
-#sum(colSums(after_ext_decon_sed_autumn))-sum(colSums(utus))
-#after_ext_decon_wate_autumn<-utus
+sum(colSums(after_ext_decon_sed_autumn))-sum(colSums(utus))
+after_ext_decon_wate_autumn<-utus
 
-#maedwa<-as.matrix(after_ext_decon_wate_autumn)
-#saveRDS(maedwa, paste(tmp,"maedwa.rds",sep=""))
+maedwa<-as.matrix(after_ext_decon_wate_autumn)
+saveRDS(maedwa, paste(tmp,"maedwa.rds",sep=""))
 
-#rm(after_ext_decon_sed_autumn,after_ntc_decon_wat_autumn,maedwa)
-rm(after_ext_decon_sed_autumn)
+rm(after_ext_decon_sed_autumn,after_ntc_decon_wat_autumn,maedwa)
 gc()
 
 #Wat decon by field control
 cat("autumn_wat_field_control")
 #Subset substrate type (water)
-#otu_table(final_table_a) = otu_table(after_ext_decon_wate_autumn, taxa_are_rows = TRUE)
-otu_table(final_table_a) = otu_table(after_ntc_decon_wat_autumn, taxa_are_rows = TRUE)
+otu_table(final_table_a) = otu_table(after_ext_decon_wate_autumn, taxa_are_rows = TRUE)
 pdata_wate<-subset_samples(final_table_a, substrate_type=="water")
 ####exclude clusters with no field control in the final dataset
 controls<-pdata_wate@sam_data[which(pdata_wate@sam_data$source=="control"),]
@@ -774,14 +781,13 @@ for (ps in 1:length(clst)){
   }
 }
 
-#sum(colSums(after_ext_decon_wate_autumn))-sum(colSums(utus))
+sum(colSums(after_ext_decon_wate_autumn))-sum(colSums(utus))
 after_clst_decon_wate_autumn<-utus
 
 macdwa<-as.matrix(after_clst_decon_wate_autumn)
 saveRDS(macdwa, paste(tmp,"macdwa.rds",sep=""))
 
-#rm(after_clst_decon_wate_autumn,after_ext_decon_wate_autumn,macdwa)
-rm(after_clst_decon_wate_autumn,macdwa)
+rm(after_clst_decon_wate_autumn,after_ext_decon_wate_autumn,macdwa)
 rm(final_table_a,final_table_s,data_wate,data_sedi)
 gc()
 
@@ -840,7 +846,7 @@ macdws<-readRDS("../tmp/macdws.rds")
 mandsa<-readRDS("../tmp/mandsa.rds")
 mandwa<-readRDS("../tmp/mandwa.rds")
 maedsa<-readRDS("../tmp/maedsa.rds")
-#maedwa<-readRDS("../tmp/maedwa.rds")
+maedwa<-readRDS("../tmp/maedwa.rds")
 macdwa<-readRDS("../tmp/macdwa.rds")
 
 andss<-mandss[,colnames(new_m_otu_s)]
@@ -852,7 +858,7 @@ acdws<-macdws[,colnames(new_m_otu_s)]
 andsa<-mandsa[,colnames(new_m_otu_a)]
 andwa<-mandwa[,colnames(new_m_otu_a)]
 aedsa<-maedsa[,colnames(new_m_otu_a)]
-#aedwa<-maedwa[,colnames(new_m_otu_a)]
+aedwa<-maedwa[,colnames(new_m_otu_a)]
 acdwa<-macdwa[,colnames(new_m_otu_a)]
 
 scus1<-colSums(new_m_otu_s)
@@ -877,20 +883,18 @@ scua1<-colSums(new_m_otu_a)
 scua2<-colSums(andsa)
 scua3<-colSums(andwa)
 scua4<-colSums(aedsa)
-#scua5<-colSums(aedwa)
+scua5<-colSums(aedwa)
 scua6<-colSums(acdwa)
 
 summary_clean_up_autumn1<-cbind(scua1,scua2)
 summary_clean_up_autumn2<-cbind(scua3,scua4)
-#summary_clean_up_autumn3<-cbind(scua5,scua6)
+summary_clean_up_autumn3<-cbind(scua5,scua6)
 
 rm(new_m_otu_a)
 gc()
 
-#summary_clean_up_autumn<-cbind(summary_clean_up_autumn1,summary_clean_up_autumn2,summary_clean_up_autumn3)
-summary_clean_up_autumn<-cbind(summary_clean_up_autumn1,summary_clean_up_autumn2,scua6)
-#colnames(summary_clean_up_autumn)<-c("raw","ntc_sed","ntc_wat","cne_sed","cne_wat","cntrl_wat")
-colnames(summary_clean_up_autumn)<-c("raw","ntc_sed","ntc_wat","cne_sed","cntrl_wat")
+summary_clean_up_autumn<-cbind(summary_clean_up_autumn1,summary_clean_up_autumn2,summary_clean_up_autumn3)
+colnames(summary_clean_up_autumn)<-c("raw","ntc_sed","ntc_wat","cne_sed","cne_wat","cntrl_wat")
 write.table(summary_clean_up_autumn,paste(summary,"summary_clean_up_autumn.txt",sep=""))
 
 
@@ -903,19 +907,18 @@ csn5<-colSums(macdws)
 csn6<-colSums(mandsa)
 csn7<-colSums(mandwa)
 csn8<-colSums(maedsa)
-#csn9<-colSums(maedwa)
+csn9<-colSums(maedwa)
 csn10<-colSums(macdwa)
 
 scb<-cbind(csn,csn1)
 scb1<-cbind(csn2,csn3)
 scb2<-cbind(csn4,csn5)
 scb3<-cbind(csn6,csn7)
-#scb4<-cbind(csn8,csn9)
+scb4<-cbind(csn8,csn9)
 
 scb_1<-cbind(scb,scb1)
 scb1_1<-cbind(scb2,scb3)
-#scb2_1<-cbind(scb4,csn10)
-scb2_1<-cbind(csn8,csn10)
+scb2_1<-cbind(scb4,csn10)
 
 rm(new_m_otu)
 gc()
@@ -923,8 +926,7 @@ gc()
 psummary_clean_up_both_seasons<-cbind(scb_1,scb1_1)
 summary_clean_up_both_seasons<-cbind(psummary_clean_up_both_seasons,scb2_1)
 
-#colnames(summary_clean_up_both_seasons)<-c("raw","ntc_sed_s","ntc_wat_s","cne_sed_s","cne_wat_s","cntrl_wat_s","ntc_sed_a","ntc_wat_a","cne_sed_a","cne_wat_a","cntrl_wat_a")
-colnames(summary_clean_up_both_seasons)<-c("raw","ntc_sed_s","ntc_wat_s","cne_sed_s","cne_wat_s","cntrl_wat_s","ntc_sed_a","ntc_wat_a","cne_sed_a","cntrl_wat_a")
+colnames(summary_clean_up_both_seasons)<-c("raw","ntc_sed_s","ntc_wat_s","cne_sed_s","cne_wat_s","cntrl_wat_s","ntc_sed_a","ntc_wat_a","cne_sed_a","cne_wat_a","cntrl_wat_a")
 write.table(summary_clean_up_both_seasons,paste(summary,"summary_clean_up_both_seasons.txt",sep=""))
 
 ###Test cleaned table
