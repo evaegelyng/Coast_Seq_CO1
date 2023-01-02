@@ -39,8 +39,8 @@ cat("\n")
 cat("total_reads_before_singleton_removal")
 sum(sample_sums(pert))
 cat("\n")
-cat("example_sample_with_singleton_COSQ_000003976_2C10EB1_1_before_removal")
-new_otu_mat["COSQ_000003976","2C10EB1_1"]
+cat("example_sample_with_singleton_COSQ_000000089_2C10EB3_3_before_removal")
+new_otu_mat["COSQ_000000089","2C10EB3_3"]
 sdptre<-data.frame(sample_data(pert))
 
 for (i in unique(sdptre$root))
@@ -55,8 +55,8 @@ for (i in unique(sdptre$root))
 }
 
 cat("\n")
-cat("example_sample_with_singleton_COSQ_000003976_2C10EB1_1_after_removal")
-new_otu_mat["COSQ_000003976","2C10EB1_1"]
+cat("example_sample_with_singleton_COSQ_000000089_2C10EB3_3_after_removal")
+new_otu_mat["COSQ_000000089","2C10EB3_3"]
 
 otu_table(p_tre)<-otu_table(new_otu_mat, taxa_are_rows = TRUE)
 tre = filter_taxa(p_tre, function(x) sum(x) > 0, TRUE)

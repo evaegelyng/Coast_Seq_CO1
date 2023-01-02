@@ -7,8 +7,7 @@ n<-ncol(mjolnir_output)
 tax_mat <- mjolnir_output[ c(1:26,n) ]
 
 #Import cleaned OTU table
-#otu_mat<-read.table("no_sing_cleaned_otu_table_ASV_wise.txt",sep="\t",check.names=F)
-otu_mat<-read.table("cleaned_otu_table_ASV_wise.txt",sep="\t",check.names=F)
+otu_mat<-read.table("no_sing_cleaned_otu_table_ASV_wise.txt",sep="\t",check.names=F)
 
 #Merge the two tables
 tax_otu<-merge(tax_mat,otu_mat,by="row.names")
