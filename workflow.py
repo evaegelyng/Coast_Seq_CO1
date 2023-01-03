@@ -17,7 +17,7 @@ libraries = [x for x in glob("/faststorage/project/eDNA/Velux/CoastSequence/Spri
 for library_root in libraries:
     library_id = os.path.basename(library_root)
     input_file = library_root + "/tags.txt"
-    meta_file = "tmp/{}/metadata_{}.tsv".format(library_id,library_id) 
+    meta_file = "tmp/metadata_{}.tsv".format(library_id) 
     output_file = "tmp/{}/ngsfilter_{}.tsv".format(library_id,library_id)
     
     gwf.target(
@@ -203,30 +203,33 @@ gwf.target(
 # Create a file per MOTU with all sequences that clustered into. 
 
 input_file = "results/{}_SWARM_output".format(project_name)
-MOTUS2RUN="results/{}_non_singleton_motu_list.txt".format(project_name) # list of MOTUs
+cleanfile="results/{}_final_dataset_cleaned_pident_70.tsv".format(project_name) 
+motus2run_file="results/{}_MOTUS2RUN.csv".format(project_name)
+MOTUS2RUN = pd.read_csv(cleanfile, sep='\t', quoting=False)["id"]
+MOTUS2RUN.to_csv(motus2run_file, index=False, header=False)
 
 motus_dir = "tmp/motus"
 output_file = "{}/{}_000000001".format(motus_dir,project_name) # Only added the first MOTU file as an output. Check that log file says "motu composition done"
 
 gwf.target(
             name="motus_{}".format(project_name),
-            inputs=[input_file,MOTUS2RUN],
+            inputs=[input_file,motus2run_file],
             outputs=output_file,
             cores=1,
             memory="196g",
             walltime="7-00:00:00",            
         ) << """
             mkdir -p {motus_dir}
-            scripts/motus.sh {input_file} {MOTUS2RUN} {motus_dir}
-        """.format(project_name=project_name, input_file=input_file, output_file=output_file, MOTUS2RUN=MOTUS2RUN, motus_dir=motus_dir) 
+            scripts/motus.sh {input_file} {motus2run_file} {motus_dir}
+        """.format(project_name=project_name, input_file=input_file, output_file=output_file, motus2run_file=motus2run_file, motus_dir=motus_dir) 
 
 # Generate a .tab file for each MOTU with all sample information
 
 motus_tab_dir="tmp/motu_tab"
-cleanfile="results/{}_final_dataset_cleaned_pident_80.tsv".format(project_name)
+selected_motus="results/{}_final_dataset_cleaned_pident_70.tsv".format(project_name) #Need to replace with final file
 
 #read MOTUS from motus file
-MOTUS = np.ravel(np.array(pd.read_csv(cleanfile, sep='\t')["id"]))
+MOTUS = np.ravel(np.array(pd.read_csv(selected_motus, sep='\t', quoting=False)["id"]))
 #shuffle MOTUS
 np.random.seed(123)
 np.random.shuffle(MOTUS)
@@ -531,20 +534,6 @@ gwf.target(
                         
 ### Combine all the metadata files into one large file
 
-#First, copy all the input files to the tmp folder to allow using the glob function below. Could also just output directly to tmp when creating the files, but it seems more organized to have them in their corresponding library folder
-#cd tmp
-#for FOLDER_NAME in ./S*
-#do
-#  cp "$FOLDER_NAME"/metadata* . 
-#  echo  "$FOLDER_NAME done"
-#done
-
-#for FOLDER_NAME in ./W*
-#do
-#  cp "$FOLDER_NAME"/metadata* . 
-#  echo  "$FOLDER_NAME done"
-#done
-
 input_files = glob('tmp/metadata*')
  
 output_file = "results/metadata/{}_metadata.tsv".format(project_name)
@@ -563,10 +552,6 @@ gwf.target(
         tail -n +2 $fname >> results/metadata/COSQ_metadata.tsv
     done
    """   
-
-#Now the copies of the metadata files in the tmp folder can be deleted
-#cd tmp
-#rm_force metadata*
 
 #Importantly, a few of the original sample names were incorrect with regard to the PSU replicate number.
 #Also, the sample names from the original sequencing run and from resequencing were identical, as it was assumed they would be automatically merged. 

@@ -1,13 +1,20 @@
-#Script to compare taxonomic identifications between datasets w. similarity threshold of 70% and 80%
+#Script to compare taxonomic identifications between datasets
+#Should be run from the results folder, using the metabar_2021 environment
 
 #Import dataset w. 80% threshold
 p80<-read.table("COSQ_final_dataset_cleaned_pident_80.tsv", sep="\t", header=T, row.names=1,check.names=F,colClasses="character")
+#Set row names to DNA sequence
+row.names(p80)<-p80$sequence
+
 #Subset to the columns "alternatives" and "score.id"
 sub80<-p80[,c(22,26)]
 head(sub80,n=2)
 
 #Import dataset w. 70% threshold
-p70<-read.table("COSQ_final_dataset_cleaned.tsv", sep="\t", header=T, row.names=1,check.names=F,colClasses="character")
+p70<-read.table("COSQ_final_dataset_cleaned_pident_70.tsv", sep="\t", header=T, row.names=1,check.names=F,colClasses="character")
+#Set row names to DNA sequence
+row.names(p70)<-p70$sequence
+
 #Subset to the columns "alternatives" and "score.id"
 sub70<-p70[,c(22,26)]
 head(sub70,n=2)
@@ -15,10 +22,10 @@ head(sub70,n=2)
 names(sub70)[1]<-"alternatives.pident.70"
 names(sub70)[2]<-"score.id.pident.70"
 
-#Merge columns by sequence id
+#Merge columns by sequence
 p70_p80<-merge(sub70,sub80,by="row.names")
 head(p70_p80,n=2)
-names(p70_p80)[1]<-"id"
+names(p70_p80)[1]<-"sequence"
 
 #Make a column indicating whether there is a difference between alternatives in the 70% vs 80% file
 p70_p80$diff.altern<-ifelse(p70_p80$alternatives.pident.70==p70_p80$alternatives,"no","yes")
@@ -31,5 +38,6 @@ head(diffs,n=5)
 #Reorder columns to make the file easier to read
 diffs_reorder<-diffs[,c(1,4,2,5,3,6,7)]
 head(diffs_reorder,n=2)
+nrow(diffs_reorder)
 
-write.table(diffs_reorder,"diffs_p70_p80.tsv",sep="\t",row.names=F)
+write.table(diffs_reorder,"COSQ_diffs_p70_p80.tsv",sep="\t",row.names=F)
