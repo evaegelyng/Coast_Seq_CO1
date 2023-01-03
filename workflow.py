@@ -110,15 +110,6 @@ output_files.append("tmp/{}.vsearch.fasta".format(project_name))
 output_files.append("tmp/{}_new.tab".format(project_name))
 output_files.append("tmp/{}_new.tab.names".format(project_name))
 
-#all_files = glob("/faststorage/project/eDNA/Velux/CoastSequence/Spring/LerayXT/MJOLNIR/tmp/*/????.unique.fasta")
-
-#old_stdout = sys.stdout
-#new_stdout = io.StringIO()
-#sys.stdout = new_stdout
-#print(" ".join(all_files)) 
-#output = new_stdout.getvalue()
-#sys.stdout = old_stdout   
-#output = output.rstrip("\n") 
 cores=2
 
 gwf.target(
@@ -209,15 +200,15 @@ MOTUS2RUN = pd.read_csv(cleanfile, sep='\t', quoting=False)["id"]
 MOTUS2RUN.to_csv(motus2run_file, index=False, header=False)
 
 motus_dir = "tmp/motus"
-output_file = "{}/{}_000000001".format(motus_dir,project_name) # Only added the first MOTU file as an output. Check that log file says "motu composition done"
+output_file = "{}/{}_000000015".format(motus_dir,project_name) # Only added the first MOTU file as an output. Check that log file says "motu composition done"
 
 gwf.target(
             name="motus_{}".format(project_name),
-            inputs=[input_file,motus2run_file],
+            inputs=[input_file,cleanfile],
             outputs=output_file,
             cores=1,
-            memory="196g",
-            walltime="7-00:00:00",            
+            memory="2g",
+            walltime="04:00:00",            
         ) << """
             mkdir -p {motus_dir}
             scripts/motus.sh {input_file} {motus2run_file} {motus_dir}
@@ -226,7 +217,7 @@ gwf.target(
 # Generate a .tab file for each MOTU with all sample information
 
 motus_tab_dir="tmp/motu_tab"
-selected_motus="results/{}_final_dataset_cleaned_pident_70.tsv".format(project_name) #Need to replace with final file
+selected_motus="results/{}_final_dataset_cleaned_pident_70_n10.tsv".format(project_name) #Need to replace with final file
 
 #read MOTUS from motus file
 MOTUS = np.ravel(np.array(pd.read_csv(selected_motus, sep='\t', quoting=False)["id"]))
@@ -318,7 +309,7 @@ gwf.target(
             outputs=output_file,
             cores=1,
             memory="196g",
-            walltime="04:00:00",            
+            walltime="12:00:00",            
         ) << """
             eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
             conda activate dnoise3
