@@ -217,8 +217,7 @@ gwf.target(
 # Generate a .tab file for each MOTU with all sample information
 
 motus_tab_dir="tmp/motu_tab"
-selected_motus="results/{}_final_dataset_cleaned_pident_70_n10.tsv".format(project_name) #Need to replace with final file
-
+selected_motus="results/{}_final_dataset_cleaned_pident_70_selected.tsv".format(project_name) #Need to replace with final file
 #read MOTUS from motus file
 MOTUS = np.ravel(np.array(pd.read_csv(selected_motus, sep='\t', quoting=False)["id"]))
 #shuffle MOTUS
@@ -266,8 +265,15 @@ for batch in range(len(MOTUSfiles)):
                     FILENAME=$(echo $NAME | sed 's/,//g' | sed 's/[][]//g')
                     if [ ! -f {motus_tab_dir}/${{FILENAME}}.log ]
                     then    
-                        sed "1q;d" {input_file} > {motus_tab_dir}/$FILENAME
-                        cat {motus_dir}/$FILENAME | xargs -P{CORES} -I {{}} python ./scripts/tab2.py {{}} {input_file} >> {motus_tab_dir}/$FILENAME
+                        # old xargs parallelization to remove (cannot parse outputs and they overlap in the output lines)
+                        # cat {motus_dir}/$FILENAME | xargs -P{CORES} -I {{}} python ./scripts/tab2.py {{}} {input_file} >> {motus_tab_dir}/$FILENAME
+                        # parallelization with parsed outputs, option -k orders the outputs the same way as the inputs
+                        cat {motus_dir}/$FILENAME | parallel -j {CORES} -k --compress "python ./scripts/tab2.py {{}} {input_file}" > {motus_tab_dir}/$FILENAME
+                        # add header from the tabular file with moti, print output in a temporary file
+                        sed "1q;d" {input_file} | cat - {motus_tab_dir}/$FILENAME > {motus_tab_dir}/$FILENAME.tmp
+                        # substitute the file without header with the temporary file created above
+                        mv -f {motus_tab_dir}/$FILENAME.tmp {motus_tab_dir}/$FILENAME
+                        # print the log file for this target of the pipeline
                         echo "hello" > {motus_tab_dir}/${{FILENAME}}.log
                     fi
                 done
@@ -321,19 +327,19 @@ gwf.target(
 
 output_dir = "tmp/output_Ad_corr"
 
-cores = 6
+cores = 2
 
 for motu in MOTUS:
     
     input_files = ["{}/{}".format(motus_tab_dir,motu),"{}/{}.log".format(motus_tab_dir,motu)]
     
-    output_file = "{}/{}_Adcorr_progress.txt".format(output_dir,motu)
+    output_file = "{}/{}_Adcorr_denoised_ratio_d.csv".format(output_dir,motu)
         
     gwf.target(
                 name=f"dnoise_{motu}",
                 inputs=input_files,
                 outputs=output_file,
-                cores=6,
+                cores=2,
                 memory="16g",
                 walltime="4:00:00",
             ) << """

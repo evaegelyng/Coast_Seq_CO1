@@ -16,7 +16,9 @@ names = pd.Series(range(len(names)), index=names)
 intersection =(FF in names.index)
 
 if(intersection):
-    x_index = names[FF] #get the index from index table
+    x_index = names[FF]+2 #get the index from index table, 
+                          #+2 compensates for header of input_file 
+                          #and 0-indexing in python
     bashCommand = f"sed \"{x_index}q;d\" {input_file}"
     run_comm = os.system(bashCommand)
     

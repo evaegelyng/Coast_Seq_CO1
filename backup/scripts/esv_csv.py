@@ -25,10 +25,10 @@ for motu in MOTUS:
     
     input_files = ["{}/{}".format(motus_tab_dir,motu),"{}/{}.log".format(motus_tab_dir,motu)]
     
-    output_file = "{}/{}_Adcorr_progress.txt".format(output_dir,motu)
+    output_file = "{}/{}_awk.log".format(output_dir,motu)
         
     gwf.target(
-                name=f"dnoise_{motu}",
+                name=f"awk_{motu}",
                 inputs=input_files,
                 outputs=output_file,
                 cores=6,
@@ -36,10 +36,11 @@ for motu in MOTUS:
                 walltime="4:00:00",
             ) << """
                 awk 'NR>1' {output_dir}/{motu}_Adcorr_denoised_ratio_d.csv | awk -v var="$motu," '{print var $0;}' >>{output_dir}/ESV_Adcorr.csv
+                echo "hello" > {output_dir}/{motu}_awk.log
             """.format(motu=motu, output_dir=output_dir)
 
 # apply filters
-# 1. same filter of minimum relative abundance applied to MOTUs
+# 1. same filter of minimum relative abundance applied to MOTUs. EES: This step was omitted, as a similar cleaning was already done before denoising
 # 2. remove sequences with different length than the modal for each MOTU, also only lengths of 313+-(n*3) are allowed
 # 3. remove numts, this is:
 	# a. seqs with codon stops
