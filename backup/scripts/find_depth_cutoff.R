@@ -11,16 +11,33 @@ library("stringr")
 #Load tables
 
 ###Make phyloseq object from raw data
-otu_mat<-as.matrix(read.table("no_sing_cleaned_otu_table_ASV_wise.txt", sep="\t", header=T, row.names=1,check.names=F))
+## Loading final table incl. taxonomy and OTU table
+COSQ <- read.table("pident97_data1.txt", sep="\t", header=T, row.names=1,check.names=F)
 
-taxonomy_raw<-read.table("COSQ_final_dataset_cleaned_220908_PFT_KBD.txt", sep='\t', header=T, comment="")
-row.names(taxonomy_raw)<-taxonomy_raw$id
-taxonomy<-taxonomy_raw[,c("kingdom","phylum","order","family","genus","final.id")]
-tax_mat_b<-as.matrix(taxonomy)
+## Create OTU table
+### First check where the first sample column is
+COSQ[1,1:35]
+### Check that the last column is a sample column
+n<-ncol(COSQ)
+COSQ[1,(n-1):n]
+### Extract all sample columns
+COSQ_otu <- COSQ[,35:n] 
+### Transform to a matrix
+COSQ_otu_m <- as.matrix(COSQ_otu) 
+### Construct phyloseq OTU table
+OTU = otu_table(COSQ_otu_m,taxa_are_rows=TRUE) 
 
-OTU = otu_table(otu_mat, taxa_are_rows = TRUE)
+## Create Taxonomy table
+### Extract relevant columns from the COSQ table. Notes: Cols8-14 = taxonomy, Col26 = score.id
+COSQ_tax <- COSQ[,c(6:12,27)] 
+### Transform to a matrix
+COSQ_tax_m <- as.matrix(COSQ_tax) 
+### Construct phyloseq taxonomy table
+TAX = tax_table(COSQ_tax_m)
+
+## Combine OTU sample and taxonomy into one phyloseq object
 TAX_b = tax_table(tax_mat_b)
-p_SILVA = phyloseq(OTU, TAX_b)
+p_SILVA = phyloseq(OTU, TAX)
 
 #Load metadata
 metadata<-read.table("metadata/no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt", sep="\t", header=T)

@@ -6,6 +6,7 @@ library(phyloseq)
 library(tibble)
 library(dplyr)
 library(ggplot2)
+library(stringr)
 
 ## Loading metadata:
 samples_df <- read.table("metadata/no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt", sep="\t", header=T, row.names=1)
@@ -13,22 +14,22 @@ samples_df <- read.table("metadata/no_control_no_sing_samples_cleaned_metadata_A
 samples=sample_data(samples_df)
 
 ## Loading final table incl. taxonomy and OTU table
-COSQ_all <- read.table("COSQ_final_dataset_cleaned_pident_70.tsv", sep="\t", header=T, row.names=1,check.names=F)
-### Subset to metazoans with best hit(s) to only a single species
-metazoa_100<-COSQ_all[which(COSQ_all$kingdom=="Metazoa" & COSQ_all$species_score==100),] # Remember that some MOTUs might be excluded due to tiny deviance from 100 due to computational inaccurracy
-### Subset further to MOTUs with at least 97% similarity to best hit
-metazoa_100_97<-metazoa_100[which(as.numeric(metazoa_100$pident.max.best)>=97),]
-### Subset further to MOTUS with at least 10 ASVs
-COSQ<-metazoa_100_97[which(as.numeric(metazoa_100_97$cluster_weight)>=10),]
+COSQ_all <- read.table("pident97_data1.txt", sep="\t", header=T, row.names=1,check.names=F)
+### Remove sequences with no final ID, and terrestrial taxa
+COSQ_marine<-COSQ_all[which(COSQ_all$final.id!="NA" & COSQ_all$Marine=="Yes"),]
+### Remove sequences not identified to species level
+COSQ_species<-COSQ_marine %>% filter(!str_detect(final.id, 'COSQ'))
+### Subset further to MOTUS with at least 2 ASVs
+COSQ<-COSQ_species[which(as.numeric(COSQ_species$cluster_weight)>=2),]
 
 ## Create OTU table
 ### First check where the first sample column is
-COSQ[1,1:28]
+COSQ[1,1:35]
 ### Check that the last column is a sample column
 n<-ncol(COSQ)
 COSQ[1,(n-1):n]
 ### Extract all sample columns
-COSQ_otu <- COSQ[,28:n] 
+COSQ_otu <- COSQ[,35:n] 
 ### Transform to a matrix
 COSQ_otu_m <- as.matrix(COSQ_otu) 
 ### Construct phyloseq OTU table
@@ -36,7 +37,7 @@ OTU = otu_table(COSQ_otu_m,taxa_are_rows=TRUE)
 
 ## Create Taxonomy table
 ### Extract relevant columns from the COSQ table. Notes: Cols8-14 = taxonomy, Col26 = score.id
-COSQ_tax <- COSQ[,c(8:14,26)] 
+COSQ_tax <- COSQ[,c(6:12,27)] 
 ### Transform to a matrix
 COSQ_tax_m <- as.matrix(COSQ_tax) 
 ### Construct phyloseq taxonomy table
@@ -67,16 +68,14 @@ otu_table(mGP10)["11",]
 
 ## Count for each taxon the number of clusters where it is present
 no_clusters<-colSums(merged@otu_table != 0)
-## Count how many taxa are present in at least 10, 15 and 20 clusters
+## Count how many taxa are present in at least 5 or 10 clusters
+five_c<-no_clusters[no_clusters>=5]
+length(five_c)
 ten_c<-no_clusters[no_clusters>=10]
 length(ten_c)
-fifteen_c<-no_clusters[no_clusters>=15]
-length(fifteen_c)
-twenty_c<-no_clusters[no_clusters>=20]
-length(twenty_c)
 
-## Make list of MOTUs present in at least 20 clusters
-selection<-names(twenty_c)
+## Make list of MOTUs present in at least 10 clusters
+selection<-names(ten_c)
 ## Extract these MOTUs from the COSQ table
 COSQ_select<-COSQ[which(row.names(COSQ) %in% selection),]
 ## Check that the right no of MOTUs were extracted
@@ -84,4 +83,4 @@ length(selection)
 nrow(COSQ_select)
 ## Write subsetted table to file
 COSQ_select$id<-row.names(COSQ_select)
-write.table(COSQ_select,"COSQ_final_dataset_cleaned_pident_70_selected.tsv",sep="\t")
+write.table(COSQ_select,"COSQ_final_dataset_cleaned_pident_97_selected.tsv",sep="\t")
