@@ -41,13 +41,17 @@ if (is.null(opt$output_dir)){
 
 output_dir = "tmp/finalfiles"
 input = "tmp/ESV_Adcorr.csv"
-metadata = "results/metadata/COSQ_metadata.tsv"
+# metadata = "results/metadata/COSQ_metadata.tsv" # I comment now but to work in my computer
+metadata = "../../no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt" # this is the path to the file. the order has to be the same of the sample columns in your data
+metadata2 = "../../<metadata_in_the_order_you_want>.txt" # this is the path to the file
 
 print('loading data')
 
 #ESV_data_initial <- read.csv(opt$input)
 ESV_data_initial <- read.csv(input)
-load(metadata)
+# load(metadata)
+sample_metadata <- read.table(metadata) # if the input is a txt you have to load like this
+sample_metadata_ <- read.table(metadata2) # this would be for the metadata in an sorted way
 original_data <- read.csv(opt$original_data, sep='\t')
 motu_taxa <- data.frame('id' = original_data$id, 'Metazoa' = c(original_data$kingdom_name == 'Metazoa'))
 
@@ -55,7 +59,7 @@ print('data loaded')
 
 samples_col <- grep("sample",colnames(ESV_data_initial))
 # colnames(ESV_data_initial)[samples_col] <- sample_metadata_NEG4B$codi
-colnames(ESV_data_initial)[samples_col] <- sample_metadata$codi
+colnames(ESV_data_initial)[samples_col] <- sample_metadata$sample_ID # it needs to be in the same order than the column names in the input data
 original_data <- original_data[,-grep('sample',colnames(original_data))]
 
 neg_samples <- grep("NEG|blank", colnames(ESV_data_initial))
@@ -66,7 +70,7 @@ ESV_data_initial <- ESV_data_initial[,-neg_samples]
 
 initial_data <- ESV_data_initial[,c(1,2,4)]
 
-ordered_data <- ESV_data_initial[,samples_col] %>% select(sample_metadata_sorted$codi)
+ordered_data <- ESV_data_initial[,samples_col] %>% select(sample_metadata_sorted$sample_ID) 
 
 seq_data <- ESV_data_initial$sequence
 
@@ -76,19 +80,19 @@ rm(ESV_data_initial, initial_data, ordered_data, seq_data)
 
 
 #####
-print('starting Filter 1: remove any MOTU for which abundance in the blank or negative controls was higher than 10% of its total read abundance remove blank and NEG samples')
-# Filter 1. remove any MOTU for which abundance in the blank or negative controls was higher than 10% of its total read abundance
-# remove blank and NEG samples
-data_neg_filt_deleted <- filtered_data[rowSums(neg_data)/rowSums(cbind(filtered_data[,grep("2018",colnames(filtered_data))],neg_data)) > 0.1,]
-filtered_data <- filtered_data[rowSums(neg_data)/rowSums(cbind(filtered_data[,grep("2018",colnames(filtered_data))],neg_data)) <= 0.1,]
-
-# Add samples names and write data into neg_filtrates directory
-write.csv(filtered_data, file = paste0(output_dir,"ESV_negfilt.csv"),row.names = F)
-
-write.csv(data_neg_filt_deleted, file = paste0(output_dir,"ESV_negfilt_deleted.csv"),row.names = F)
-rm(data_neg_filt_deleted)
-
-print('Filter 1 finished')
+# print('starting Filter 1: remove any MOTU for which abundance in the blank or negative controls was higher than 10% of its total read abundance remove blank and NEG samples')
+# # Filter 1. remove any MOTU for which abundance in the blank or negative controls was higher than 10% of its total read abundance
+# # remove blank and NEG samples
+# data_neg_filt_deleted <- filtered_data[rowSums(neg_data)/rowSums(cbind(filtered_data[,grep("2018",colnames(filtered_data))],neg_data)) > 0.1,]
+# filtered_data <- filtered_data[rowSums(neg_data)/rowSums(cbind(filtered_data[,grep("2018",colnames(filtered_data))],neg_data)) <= 0.1,]
+# 
+# # Add samples names and write data into neg_filtrates directory
+# write.csv(filtered_data, file = paste0(output_dir,"ESV_negfilt.csv"),row.names = F)
+# 
+# write.csv(data_neg_filt_deleted, file = paste0(output_dir,"ESV_negfilt_deleted.csv"),row.names = F)
+# rm(data_neg_filt_deleted)
+# 
+# print('Filter 1 finished')
 
 
 #####
@@ -103,7 +107,7 @@ relabund <- function(x){
 
 
 
-for (i in sample_metadata_sorted$codi) {
+for (i in sample_metadata_sorted$sample_ID) {
   a <- relabund(filtered_data[,grep(i,colnames(filtered_data))])<0.00005 
   zeros <- filtered_data[,grep(i,colnames(filtered_data))] == 0 
   
