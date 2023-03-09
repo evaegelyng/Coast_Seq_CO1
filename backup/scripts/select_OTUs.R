@@ -14,7 +14,7 @@ samples_df <- read.table("metadata/no_control_no_sing_samples_cleaned_metadata_A
 samples=sample_data(samples_df)
 
 ## Loading final table incl. taxonomy and OTU table
-COSQ_all <- read.table("pident97_data1.txt", sep="\t", header=T, row.names=1,check.names=F)
+COSQ_all <- read.table("NEW_pident97_data.txt", sep="\t", header=T, row.names=1,check.names=F)
 ### Remove sequences with no final ID, and terrestrial taxa
 COSQ_marine<-COSQ_all[which(COSQ_all$final.id!="NA" & COSQ_all$Marine=="Yes"),]
 ### Remove sequences not identified to species level
@@ -36,7 +36,7 @@ COSQ_otu_m <- as.matrix(COSQ_otu)
 OTU = otu_table(COSQ_otu_m,taxa_are_rows=TRUE) 
 
 ## Create Taxonomy table
-### Extract relevant columns from the COSQ table. Notes: Cols8-14 = taxonomy, Col26 = score.id
+### Extract relevant columns from the COSQ table. Notes: Cols8-12 = taxonomy, Col27 = final.id
 COSQ_tax <- COSQ[,c(6:12,27)] 
 ### Transform to a matrix
 COSQ_tax_m <- as.matrix(COSQ_tax) 
@@ -83,4 +83,4 @@ length(selection)
 nrow(COSQ_select)
 ## Write subsetted table to file
 COSQ_select$id<-row.names(COSQ_select)
-write.table(COSQ_select,"COSQ_final_dataset_cleaned_pident_97_selected.tsv",sep="\t")
+write(COSQ_select$id,"COSQ_pident_97_selected.txt")

@@ -5,6 +5,8 @@
 library(phyloseq)
 library(tibble)
 library(dplyr)
+library(plyr)
+library(scales)
 library(ggplot2)
 library(stringr)
 library(vegan)
@@ -53,6 +55,12 @@ combinedi<-data.frame(combinedi)
 threshold<-round(median(combinedi$readsi))
 combinedi$q<-combinedi$readsi>threshold
 
+### Make histogram of raw read counts
+mui <- ddply(combinedi, .(season, substrate_type), summarise, grp.mean=mean(readsi))
+ggplot(combinedi, aes(x=readsi)) +
+geom_histogram(aes(fill=q), position="identity", alpha=0.6, binwidth=2500) + geom_density(alpha=0.6) + geom_vline(data=mui, aes(xintercept=grp.mean), linetype="dashed") + theme_classic() + scale_x_continuous(labels = comma) + scale_y_continuous(labels = comma) + facet_wrap(substrate_type ~ season, ncol=2, scales="free") + theme(axis.text.x = element_text(hjust = 1, vjust=0, size = 7), axis.text.y = element_text(size=7), strip.text.x = element_text(margin = margin(0.05,0,0.05,0, "cm")), strip.text = element_text(size=7),legend.title=element_text(size=7),legend.text=element_text(size=6)) +  theme(legend.key.size = unit(0.3, "cm")) + labs(title="Reads histogram plot", x ="Reads", y = "Count", fill = paste("Total reads > ",threshold,sep="")) + scale_x_continuous(limits=c(0,1000000)) + scale_y_continuous(limits=c(0,50))
+ggsave("reads_hist_raw.pdf")
+
 ### Transfer the column generated above to the phyloseq object
 sample_data(COSQ_final)$over_median<-combinedi$q[match(sample_data(COSQ_final)$sample_ID, combinedi$sample_ID)]
 
@@ -63,8 +71,11 @@ above_t<-rarefy_even_depth(subset_samples(COSQ_final, over_median==TRUE), sample
 below_t<-subset_samples(COSQ_final, over_median==FALSE)
 
 ### Merge the rarefied PCR replicates with the low-depth PCR replicates
-COSQ_rare<-merge_phyloseq(above_t, below_t)
+COSQ_merge <-merge_phyloseq(above_t, below_t)
 
+### Remove OTUs from phyloseq object, that are no longer represented in any samples.
+COSQ_rare = filter_taxa(COSQ_merge, function(x) sum(x) > 0, TRUE)
+COSQ_rare
 
 ## Rarefy samples to median read depth
 ### First, merge PCR replicates from the same field sample
@@ -102,8 +113,12 @@ above_t<-rarefy_even_depth(subset_samples(merged, over_median==TRUE), sample.siz
 ### Extract the samples with a read depth at or below the median
 below_t<-subset_samples(merged, over_median==FALSE)
 
+
 ### Merge the rarefied samples with the low-depth samples
-COSQ_rare2<-merge_phyloseq(above_t, below_t)
+COSQ_merge2<-merge_phyloseq(above_t, below_t)
+
+### Remove OTUs from phyloseq object, that are no longer represented in any samples
+COSQ_rare2 = filter_taxa(COSQ_merge2, function(x) sum(x) > 0, TRUE)
 
 ### Check how many OTUs are left
 COSQ_rare2

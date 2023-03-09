@@ -10,9 +10,6 @@ taxo/
 ###########
 results/
 
-# temporary folder #
-mjolnir_end/
-
 # test folder #
 ###############
 mjolnir_test/
@@ -29,7 +26,7 @@ mjolnir_test/
 
 # python cache #
 ################
-__pycache__/
+__pycache__*
 
 # SLURM log #
 #############

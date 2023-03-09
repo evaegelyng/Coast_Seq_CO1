@@ -1,10 +1,7 @@
-
-#!/usr/bin/env Rscript
-
 library("optparse")
 library("stringr")
 library("dplyr")
-source('Script2.2_numts.R')
+source('scripts/Script2.2_numts.R')
 
 option_list = list(
   make_option(c("-i", "--input_file"), type="character", default=NULL, metavar="character"),
@@ -41,10 +38,16 @@ if (is.null(opt$output_dir)){
 # load('metadata.RData')
 # original_data <- read.csv("../../Pipeline/PHY1.Curated_LULU_euk.csv", sep='\t')
 # motu_taxa <- data.frame('id' = original_data$id, 'Metazoa' = c(original_data$kingdom_name == 'Metazoa'))
+
+output_dir = "tmp/finalfiles"
+input = "tmp/ESV_Adcorr.csv"
+metadata = "results/metadata/COSQ_metadata.tsv"
+
 print('loading data')
 
-ESV_data_initial <- read.csv(opt$input)
-load(opt$metadata)
+#ESV_data_initial <- read.csv(opt$input)
+ESV_data_initial <- read.csv(input)
+load(metadata)
 original_data <- read.csv(opt$original_data, sep='\t')
 motu_taxa <- data.frame('id' = original_data$id, 'Metazoa' = c(original_data$kingdom_name == 'Metazoa'))
 
@@ -59,7 +62,7 @@ neg_samples <- grep("NEG|blank", colnames(ESV_data_initial))
 neg_data <- ESV_data_initial[,neg_samples]
 
 ESV_data_initial <- ESV_data_initial[,-neg_samples]
-samples_col <- grep("_2018",colnames(ESV_data_initial))
+#samples_col <- grep("_2018",colnames(ESV_data_initial))
 
 initial_data <- ESV_data_initial[,c(1,2,4)]
 
@@ -80,9 +83,9 @@ data_neg_filt_deleted <- filtered_data[rowSums(neg_data)/rowSums(cbind(filtered_
 filtered_data <- filtered_data[rowSums(neg_data)/rowSums(cbind(filtered_data[,grep("2018",colnames(filtered_data))],neg_data)) <= 0.1,]
 
 # Add samples names and write data into neg_filtrates directory
-write.csv(filtered_data, file = paste0(opt$output_dir,"ESV_negfilt.csv"),row.names = F)
+write.csv(filtered_data, file = paste0(output_dir,"ESV_negfilt.csv"),row.names = F)
 
-write.csv(data_neg_filt_deleted, file = paste0(opt$output_dir,"ESV_negfilt_deleted.csv"),row.names = F)
+write.csv(data_neg_filt_deleted, file = paste0(output_dir,"ESV_negfilt_deleted.csv"),row.names = F)
 rm(data_neg_filt_deleted)
 
 print('Filter 1 finished')
@@ -115,9 +118,9 @@ for (i in sample_metadata_sorted$codi) {
 
 # write modified MOTUs info
 
-write.csv(filtered_data, file = paste0(opt$output_dir,"ESV_relabundfilt.csv"),row.names = F)
+write.csv(filtered_data, file = paste0(output_dir,"ESV_relabundfilt.csv"),row.names = F)
 
-sink(paste0(opt$output_dir,"ESV_relabundfilt_modified.txt"))
+sink(paste0(output_dir,"ESV_relabundfilt_modified.txt"))
 print(modified_ESV)
 sink()
 
@@ -184,8 +187,8 @@ motu_abund <- lapply(original_data$id, FUN = function(x){
 original_data <- cbind(original_data,bind_rows(lapply(motu_abund, as.data.frame.list)))
 
 
-write.csv(filtered_data, paste(opt$output_dir,"ESV_final_table.csv", sep = ""), row.names = F)
-write.csv(numts_seqs, paste(opt$output_dir,"ESV_numts.csv", sep = ""), row.names = F)
-write.csv(original_data, paste(opt$output_dir,"MOTU_final_table.csv", sep = ""), row.names = F)
+write.csv(filtered_data, paste(output_dir,"ESV_final_table.csv", sep = ""), row.names = F)
+write.csv(numts_seqs, paste(output_dir,"ESV_numts.csv", sep = ""), row.names = F)
+write.csv(original_data, paste(output_dir,"MOTU_final_table.csv", sep = ""), row.names = F)
 
 print('finished')
