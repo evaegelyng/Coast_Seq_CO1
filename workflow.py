@@ -66,8 +66,8 @@ for i in range(0,len(read)):
                 inputs=input_files,
                 outputs=output_file,
                 cores=2,
-                memory="8g",
-                walltime="4:00:00",
+                memory="16g",
+                walltime="12:00:00",
             ) << """
                 eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
                 conda activate dnoise3

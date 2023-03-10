@@ -214,104 +214,6 @@ gwf.target(
             scripts/motus.sh {input_file} {motus2run_file} {motus_dir}
         """.format(project_name=project_name, input_file=input_file, output_file=output_file, motus2run_file=motus2run_file, motus_dir=motus_dir) 
 
-# Generate a .tab file for each MOTU with all sample information
-
-motus_tab_dir="tmp/motu_tab"
-selected_motus="results/{}_pident_97_selected.txt".format(project_name)
-
-with open(selected_motus, 'r') as fp:
-    read = fp.readlines() 
-    lines = len(read)
-
-CORES=64
-
-for i in range(1,len(read)):
-    motu = read[i].strip()
-    input_file = "tmp/{}_new.tab".format(project_name)
-    output_file = "{}/{}".format(motus_tab_dir,motu)
-        
-    gwf.target(
-                name="tab_{}_{}".format(project_name, i),
-                inputs=input_file,
-                outputs=output_file,
-                cores=CORES,
-                memory="8g",
-                walltime="72:00:00",
-            ) << """
-                mkdir -p {motus_tab_dir}
-                # parallelization with parsed outputs, option -k orders the outputs the same way as the inputs
-                cat {motus_dir}/{motu} | parallel -j {CORES} -k --compress "python ./scripts/tab2.py {{}} {input_file}" > {motus_tab_dir}/{motu}
-                # add header from the tabular file with motu, print output in a temporary file
-                sed "1q;d" {input_file} | cat - {motus_tab_dir}/{motu} > {motus_tab_dir}/{motu}.tmp
-                # substitute the file without header with the temporary file created above
-                mv -f {motus_tab_dir}/{motu}.tmp {motus_tab_dir}/{motu}
-                # print the log file for this target of the pipeline
-                echo "hello" > {motus_tab_dir}/${{motu}}.log
-            """.format(CORES=CORES, motu=motu, motus_tab_dir=motus_tab_dir, i=i, input_file=input_file, motus_dir=motus_dir)
-
-#selected_motus="results/{}_final_dataset_cleaned_pident_97_selected.tsv".format(project_name) #Need to replace with final file
-#read MOTUS from motus file
-#MOTUS = np.ravel(np.array(pd.read_csv(selected_motus, sep='\t', quoting=False)["id"]))
-#shuffle MOTUS
-#np.random.seed(123)
-#np.random.shuffle(MOTUS)
-#batches of MOTU names in a dictionary
-#Lmotus = len(MOTUS) #nr of MOTUs
-#N = 2 #nr of MOTUs in a batch
-#B = Lmotus // N #nr batches
-#B_last = Lmotus % N #size of last batch
-#MOTUSfiles = [] #empty string list with B or B+1 batches
-
-#add a string of N motu paths in each entry
-#for i in range(B): 
-#    vec = [ f"{MOTUS[i*N+j]}" for j in range(N) ]
-#    vec2 = ' '.join(vec)
-#    MOTUSfiles.append(vec2)
-#add the last B_last motu if necessary
-#if B_last>0:
-#    vec = [ f"{MOTUS[B*N+j]}" for j in range(B_last) ]
-#    vec2 = ' '.join(vec)
-#    MOTUSfiles.append(vec2)
-
-#CORES=32
-#for batch in range(len(MOTUSfiles)):
-#    MOTUSlist = MOTUSfiles[batch]
-#    MOTUSlist = MOTUSlist.split(' ')
-
-
-#    input_file = "tmp/{}_new.tab".format(project_name)
-#    output_file = ["{}/BATCH_{}.log".format(motus_tab_dir,batch)] + ["{}/{}".format(motus_tab_dir,i) for i in MOTUSlist]
-    
-
-#    gwf.target( name=f"tab_batch_{batch}",
-#                inputs=input_file,
-#                outputs=output_file,
-#                cores=CORES,
-#                memory="8g",
-#                walltime="7-00:00:00",
-#            ) << """ 
-#                mkdir -p {motus_tab_dir}
-#                rm -f output_file
-#                for NAME in {MOTUSlist}
-#                do
-#                    FILENAME=$(echo $NAME | sed 's/,//g' | sed 's/[][]//g')
-#                    if [ ! -f {motus_tab_dir}/${{FILENAME}}.log ]
-#                    then    
-                        # parallelization with parsed outputs, option -k orders the outputs the same way as the inputs
-#                        cat {motus_dir}/$FILENAME | parallel -j {CORES} -k --compress "python ./scripts/tab2.py {{}} {input_file}" > {motus_tab_dir}/$FILENAME
-                        # add header from the tabular file with motu, print output in a temporary file
-#                        sed "1q;d" {input_file} | cat - {motus_tab_dir}/$FILENAME > {motus_tab_dir}/$FILENAME.tmp
-                        # substitute the file without header with the temporary file created above
-#                        mv -f {motus_tab_dir}/$FILENAME.tmp {motus_tab_dir}/$FILENAME
-                        # print the log file for this target of the pipeline
-#                        echo "hello" > {motus_tab_dir}/${{FILENAME}}.log
-#                    fi
-#                done
-#                echo "hello" > {motus_tab_dir}/BATCH_{batch}.log
-#            """.format(CORES=CORES, MOTUSlist=MOTUSlist,
-#            motus_tab_dir=motus_tab_dir, motus_dir=motus_dir,
-#            input_file=input_file, batch=batch)
-
 # Remove trailing spaces from COSQ_vsearch.fasta
 
 input_file = "tmp/{}.vsearch.fasta".format(project_name)
@@ -352,33 +254,6 @@ gwf.target(
             python3 {DnoisE_dir}/DnoisE.py --fasta_input {vsearch_file} --csv_output {output_dir} -n size -g
             mv results_entropy_values.csv results
         """.format(project_name=project_name, DnoisE_dir=DnoisE_dir, vsearch_file=vsearch_file, output_dir=output_dir)
-
-# Run DnoisE. Remember to input entropy values from previous target to dnoise.sh
-
-output_dir = "tmp/output_Ad_corr"
-
-cores = 2
-
-for i in range(1,len(read)):
-    motu = read[i].strip()
-    
-    input_files = ["{}/{}".format(motus_tab_dir,motu),"{}/{}.log".format(motus_tab_dir,motu)]
-    
-    output_file = "{}/{}_Adcorr_denoised_ratio_d.csv".format(output_dir,motu)
-        
-    gwf.target(
-                name=f"dnoise_{motu}",
-                inputs=input_files,
-                outputs=output_file,
-                cores=2,
-                memory="8g",
-                walltime="4:00:00",
-            ) << """
-                eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
-                conda activate dnoise3
-                mkdir -p {output_dir}
-                scripts/dnoise.sh {motu} {output_dir} {DnoisE_dir} {motus_tab_dir} {cores}
-            """.format(motu=motu, output_dir=output_dir, DnoisE_dir=DnoisE_dir, motus_tab_dir=motus_tab_dir, cores=cores)
 
 ###Split fasta file (the nochim one with chimeras removed) into K parts
 #NB! Should add removal of old index file, as this seems to not be overwritten
