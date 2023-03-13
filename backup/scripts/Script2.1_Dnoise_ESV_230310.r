@@ -1,7 +1,6 @@
 library("optparse")
 library("stringr")
 library("dplyr")
-library("phyloseq")
 source('scripts/Script2.2_numts.R')
 
 output_dir = "tmp/finalfiles"

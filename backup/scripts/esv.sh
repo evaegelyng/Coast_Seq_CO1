@@ -6,7 +6,7 @@
 
 input_dir="tmp/output_Ad_corr"
 output_dir="tmp"
-MOTUS2RUN="results/old_selected.txt"
+MOTUS2RUN="results/COSQ_pident_97_selected.txt"
 lines=$(wc -l ${MOTUS2RUN} | cut -f1 -d ' ')
 
 for i in $(seq 1 ${lines})
