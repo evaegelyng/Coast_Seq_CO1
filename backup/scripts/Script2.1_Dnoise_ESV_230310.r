@@ -14,7 +14,7 @@ metadata <- read.table("results/metadata/COSQ_metadata_new.tsv",sep="\t",head=T,
 #sample_metadata_sorted <- read.table(metadata2) # this would be for the metadata in an sorted way
 original_data <- read.csv("results/COSQ_Curated_LULU.tsv", sep='\t')
 # Are only metazoans used finally? Would like to include other groups as well
-motu_taxa <- data.frame('id' = original_data$id, 'Metazoa' = c(original_data$kingdom == 'Metazoa'))
+motu_taxa <- data.frame('id' = original_data$id, 'Metazoa' = c(original_data$kingdom == 'Metazoa' & !is.na(original_data$kingdom)))
 
 print('data loaded')
 
@@ -95,98 +95,55 @@ rm(ESV_data_initial, initial_data, seq_data)
 print('starting Filter 2: Apply a minimum relative abundance threshold for each sample, setting to zero any abundance below 0.005% of the total reads of this sample')
 # Filter 2. Apply a minimum relative abundance threshold for each sample, setting to zero any abundance below 0.005% of the total reads of this sample
 
-modified_ESV <- list()
+min_relative <- 0.00005
+relabund <- function(x,min_relative) if (sum(x)>0) x/sum(x) < min_relative else FALSE
 
-relabund <- function(x){
-  x/sum(x)
-}
+change_matrix <- do.call("cbind",apply(merged_data[,colnames(read_data)], 2, relabund, min_relative=min_relative)) & merged_data[,colnames(read_data)]>0
 
-for (i in colnames(read_data)) {
-  a <- relabund(merged_data[,grep(i,colnames(merged_data))])<0.00005 
-  zeros <- merged_data[,grep(i,colnames(merged_data))] == 0 
-  
-  changes <- (a+zeros == 1)
-  
-  merged_data[changes,grep(i,colnames(merged_data))] <- 0
-  
-  # modified motus are stored
-  modified_ESV[i] <- list(as.character(merged_data$id[changes]))
-}
+relabund_changed <- data.frame(ESV_id_modified = rownames(change_matrix[rowSums(change_matrix)>0,]),
+                               samples = vapply(rownames(change_matrix[rowSums(change_matrix)>0,]), function(x,change_matrix){
+                                 return(paste(colnames(change_matrix)[change_matrix[rownames(change_matrix)==x,]],collapse = "|"))
+                               }, FUN.VALUE = "string", change_matrix = change_matrix))
+merged_data[,colnames(read_data)][change_matrix] <- 0
 
+merged_data$COUNT <- rowSums(merged_data[,colnames(read_data)])
 
-# write modified MOTUs info
+min_reads <- 5
 
-write.csv(merged_data, file = paste0(output_dir,"ESV_relabundfilt.csv"),row.names = F)
+message("RAGNAROC is removing MOTUs with less than ",min_reads," total reads.")
+merged_data <- merged_data[merged_data$COUNT >= min_reads,]
 
-sink(paste0(output_dir,"ESV_relabundfilt_modified.txt"))
-print(modified_ESV)
-sink()
-
-rm(modified_ESV)
-
-print('Filter 2 finished')
-
-
-#####
-print('starting Filter 3: apply minimum abundance of 5 reads')
-# Filter 3. apply minimum abundance of 5 reads
-merged_data$count <- rowSums(merged_data[,grep('2018',colnames(merged_data))])
-merged_data <- merged_data[merged_data$count>4,]
-colnames(merged_data)[grep('seq_data',colnames(merged_data))] <- 'seq'
-
-print('Filter 3 finished')
-
-#####
-print('starting Filter 4: remove sequences of bad length')
-# Filter 4. remove sequences of bad length
-
-lengths <- nchar(as.vector(merged_data$seq))
+# remove numts
+message("numts will be removed")
+no_ESV_before_numts <- dim(merged_data)[1]
+# First, remove sequences of incorrect length
+lengths <- nchar(as.vector(merged_data$seq_data))
 merged_data <- merged_data[(lengths-313)%%3 == 0,]
-lengths <- nchar(as.vector(merged_data$seq))
-
-print('Filter 4 finished')
-
-#####
-print('starting Filter 5: remove numts')
-# Filter 5. remove numts
+lengths <- nchar(as.vector(merged_data$seq_data))
 
 no_numts_data <- c()
 numts_seqs <- c()
 
 number_of_motus <- length(unique(merged_data$motu))
-for (i in 1:number_of_motus) {
+
+cores <- 1
+numts_ESV <- parallel::mclapply(1:number_of_motus,function(i,merged_data,motu_taxa){
   motu <- unique(merged_data$motu)[i]
   datas <- merged_data[merged_data$motu==motu,]
   is_metazoa <- motu_taxa$Metazoa[motu_taxa$id==as.character(motu)]
-  datas_length <- nchar(as.vector(datas$seq))
+  datas_length <- nchar(as.vector(datas$seq_data))
   newlist <- numts(datas, is_metazoa = is_metazoa, motu = motu, datas_length = datas_length)
-  no_numts_data <- rbind(no_numts_data,newlist[['no_numts_data']])
-  numts_seqs <- rbind(numts_seqs,newlist[['numts_seqs']])
-  print(paste0((i/number_of_motus*100),'% run'))
-}
+  return(newlist)
+ },merged_data=merged_data,motu_taxa=motu_taxa,mc.cores = cores)
+#numts_ESV_all <- do.call("rbind",numts_ESV)
+ID_numts_ESV = unlist( lapply(numts_ESV, function(x) x$no_numts_data$id) )
 
-merged_data <- no_numts_data
+final_data <- merged_data[merged_data$id %in% ID_numts_ESV,]
 
-print('Filter 5 finished')
+before<-length(merged_data$id)
+after <- length(ID_numts_ESV)
+no_numts <- before - after
 
-print('writing outputs')
+message("",no_numts," numts removed. ",before," ESVs was reduced to ",after," ESVs")
 
-# create MOTU table with taxo
-original_data <- original_data[match(unique(merged_data$motu),original_data$id),]
-motu_abund <- lapply(original_data$id, FUN = function(x){
-  data_motu <- merged_data[as.character(merged_data$motu) == x ,grep('2018',colnames(merged_data))]
-  if (dim(data_motu)[1]>1) {
-    return(colSums(data_motu))
-  } else { 
-    return(data_motu)
-    }
-} )
-
-original_data <- cbind(original_data,bind_rows(lapply(motu_abund, as.data.frame.list)))
-
-
-write.csv(merged_data, paste(output_dir,"ESV_final_table.csv", sep = ""), row.names = F)
-write.csv(numts_seqs, paste(output_dir,"ESV_numts.csv", sep = ""), row.names = F)
-write.csv(original_data, paste(output_dir,"MOTU_final_table.csv", sep = ""), row.names = F)
-
-print('finished')
+write.table(final_data,"results/COSQ_final_ESV.tsv",row.names = F,sep="\t",quote = F)
