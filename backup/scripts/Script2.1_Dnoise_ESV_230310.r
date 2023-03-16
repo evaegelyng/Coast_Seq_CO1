@@ -74,7 +74,7 @@ seq_data <- ESV_data_initial$sequence
 
 merged_data <- cbind(initial_data, read_data, seq_data)
 
-rm(ESV_data_initial, initial_data, seq_data)
+#rm(ESV_data_initial, initial_data, seq_data)
 
 #####
 # print('starting Filter 1: remove any MOTU for which abundance in the blank or negative controls was higher than 10% of its total read abundance remove blank and NEG samples')
@@ -92,10 +92,9 @@ rm(ESV_data_initial, initial_data, seq_data)
 # print('Filter 1 finished')
 
 #####
-print('starting Filter 2: Apply a minimum relative abundance threshold for each sample, setting to zero any abundance below 0.005% of the total reads of this sample')
-# Filter 2. Apply a minimum relative abundance threshold for each sample, setting to zero any abundance below 0.005% of the total reads of this sample
+# Filter 2. Apply a minimum relative abundance threshold for each sample, setting to zero any abundance below X% of the total reads of this sample
 
-min_relative <- 0.00005
+min_relative <- 0.001
 relabund <- function(x,min_relative) if (sum(x)>0) x/sum(x) < min_relative else FALSE
 
 change_matrix <- do.call("cbind",apply(merged_data[,colnames(read_data)], 2, relabund, min_relative=min_relative)) & merged_data[,colnames(read_data)]>0
@@ -145,5 +144,8 @@ after <- length(ID_numts_ESV)
 no_numts <- before - after
 
 message("",no_numts," numts removed. ",before," ESVs was reduced to ",after," ESVs")
+
+# Remove old count column
+merged_data = subset(merged_data, select = -c(count))
 
 write.table(final_data,"results/COSQ_final_ESV.tsv",row.names = F,sep="\t",quote = F)
