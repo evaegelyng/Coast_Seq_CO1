@@ -14,8 +14,8 @@ do
     motu=$(sed "${i}q;d" ${MOTUS2RUN})
     if [ $i == 1 ]
     then
-	    head -n 1 ${input_dir}/${motu}_Adcorr_denoised_ratio_d.csv > ${output_dir}/ESV_Adcorr.csv
-	    sed -i 's/id/motu,id/g' ${output_dir}/ESV_Adcorr.csv
+	    head -n 1 ${input_dir}/${motu}_Adcorr_denoised_ratio_d.csv > ${output_dir}/ASV_Adcorr.csv
+	    sed -i 's/id/motu,id/g' ${output_dir}/ASV_Adcorr.csv
     fi
-    awk 'NR>1' ${input_dir}/${motu}_Adcorr_denoised_ratio_d.csv | awk -v var="$motu," '{print var $0;}' >>${output_dir}/ESV_Adcorr.csv
+    awk 'NR>1' ${input_dir}/${motu}_Adcorr_denoised_ratio_d.csv | awk -v var="$motu," '{print var $0;}' >>${output_dir}/ASV_Adcorr.csv
 done

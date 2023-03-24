@@ -16,8 +16,8 @@ samples_df <- read.table("metadata/merged_seq_run_cleaned_metadata_ASV_wise.txt"
 ## Construct phyloseq metadata table
 samples=sample_data(samples_df)
 
-## Loading final ESV table
-COSQ <- read.table("no_sing_ESV.txt", sep="\t", header=T, row.names=1,check.names=F)
+## Loading final ASV table
+COSQ <- read.table("no_sing_ASV.txt", sep="\t", header=T, row.names=1,check.names=F)
 ### Transform to a matrix
 COSQ_otu_m <- as.matrix(COSQ) 
 ### Construct phyloseq OTU table
@@ -42,7 +42,7 @@ combinedi$q<-combinedi$readsi>threshold
 mui <- ddply(combinedi, .(season, substrate_type), summarise, grp.mean=mean(readsi))
 ggplot(combinedi, aes(x=readsi)) +
 geom_histogram(aes(fill=q), position="identity", alpha=0.6, binwidth=2500) + geom_density(alpha=0.6) + geom_vline(data=mui, aes(xintercept=grp.mean), linetype="dashed") + theme_classic() + scale_x_continuous(labels = comma) + scale_y_continuous(labels = comma) + facet_wrap(substrate_type ~ season, ncol=2, scales="free") + theme(axis.text.x = element_text(hjust = 1, vjust=0, size = 7), axis.text.y = element_text(size=7), strip.text.x = element_text(margin = margin(0.05,0,0.05,0, "cm")), strip.text = element_text(size=7),legend.title=element_text(size=7),legend.text=element_text(size=6)) +  theme(legend.key.size = unit(0.3, "cm")) + labs(title="Reads histogram plot", x ="Reads", y = "Count", fill = paste("Total reads > ",threshold,sep="")) + scale_x_continuous(limits=c(0,1000000)) + scale_y_continuous(limits=c(0,50))
-ggsave("reads_hist_raw_esv.pdf")
+ggsave("reads_hist_raw_ASV.pdf")
 
 ### Transfer the column generated above to the phyloseq object
 sample_data(COSQ_final)$over_median<-combinedi$q[match(sample_data(COSQ_final)$sample_ID, combinedi$sample_ID)]
@@ -104,7 +104,7 @@ COSQ_merge2<-merge_phyloseq(above_t, below_t)
 ### Remove OTUs from phyloseq object, that are no longer represented in any samples
 COSQ_rare2 = filter_taxa(COSQ_merge2, function(x) sum(x) > 0, TRUE)
 
-### Check how many ESVs are left
+### Check how many ASVs are left
 COSQ_rare2
 
 ## Save final files
@@ -112,9 +112,9 @@ otu_m<-data.frame(otu_table(COSQ_rare2),check.names=F)
 
 sam_dat<-data.frame(sample_data(COSQ_rare2), check.names=F)
 
-write.table(sam_dat, "metadata/metadata_rarefy_esv.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(sam_dat, "metadata/metadata_rarefy_ASV.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
-write.table(otu_m, "otu_rarefy_esv.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(otu_m, "otu_rarefy_ASV.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
 # Merge samples from the same cluster, and keep no. of positive samples instead of read counts (see Antich et al 2022)
 ## First add cluster information (season is included to keep dataframe format for merging)
@@ -146,14 +146,14 @@ stressplot(nmds) # Produces a Shepards diagram
 dev.off()
 
 # Plotting points in ordination space
-pdf("nmds_esv.pdf")
+pdf("nmds_ASV.pdf")
 plot(nmds, "sites",cex=5)   # Produces distance 
 orditorp(nmds, "sites")   # Gives points labels
 dev.off()
 
 #Reattach MOTU id for each ASV
 asv_agg_t<-t(asv_agg)
-motu<-read.table("COSQ_final_ESV.tsv", sep="\t", header=T, check.names=F)
+motu<-read.table("COSQ_final_ASV.tsv", sep="\t", header=T, check.names=F)
 row.names(motu)<-motu$id
 asv_motu<-merge(asv_agg_t,motu[,c("motu","id")],by="row.names")
 row.names(asv_motu)<-asv_motu$Row.names

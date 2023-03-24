@@ -7,9 +7,9 @@ library("scales")
 library("stringr")
 
 #Load table
-otu_tab<-read.table("results/COSQ_final_ESV.tsv", sep="\t", header=T, check.names=F)
+otu_tab<-read.table("results/COSQ_final_ASV.tsv", sep="\t", header=T, check.names=F)
 
-#Set row names to ESV ID
+#Set row names to ASV ID
 row.names(otu_tab)<-otu_tab$id
 
 #Select sample columns only
@@ -74,7 +74,7 @@ shablaw<-as.matrix(data.frame(otu_table(tsa), check.names=F))
 
 #Write files
 
-write.table(shablaw, "results/no_sing_ESV.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(shablaw, "results/no_sing_ASV.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
-write.table(data.frame(sample_data(tsa)), "results/metadata/no_sing_ESV_metadata.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(data.frame(sample_data(tsa)), "results/metadata/no_sing_ASV_metadata.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
