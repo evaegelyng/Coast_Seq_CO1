@@ -17,7 +17,6 @@ otu_m<-data.frame(otu_table(COSQ_rare2),check.names=F)
 
 sam_dat<-data.frame(sample_data(COSQ_rare2), check.names=F)
 
-# Merge sample replicates, and keep no. of positive samples instead of read counts (see Antich et al 2022)
 ## First add sample information
 sam_dat$sample<-sam_dat$root<-factor(substr(rownames(sam_dat),
                           1,
