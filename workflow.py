@@ -34,7 +34,7 @@ with open(selected_motus, 'r') as fp:
     read = fp.readlines() 
     lines = len(read)
 
-CORES=8
+CORES=32
 
 for i in range(0,len(read)):
     motu = read[i].strip()
@@ -47,8 +47,8 @@ for i in range(0,len(read)):
                 inputs=input_file,
                 outputs=[output_file,log_file],
                 cores=CORES,
-                memory="8g",
-                walltime="16:00:00",
+                memory="12g",
+                walltime="12:00:00",
             ) << """
                 mkdir -p {motus_tab_dir}
                 # parallelization with parsed outputs, option -k orders the outputs the same way as the inputs

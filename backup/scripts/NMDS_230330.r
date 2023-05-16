@@ -18,7 +18,7 @@ otu_m<-data.frame(otu_table(COSQ_rare2),check.names=F)
 sam_dat<-data.frame(sample_data(COSQ_rare2), check.names=F)
 
 ## First add sample information
-sam_dat$sample<-sam_dat$root<-factor(substr(rownames(sam_dat),
+sam_dat$sample<-factor(substr(rownames(sam_dat),
                           1,
                           nchar(rownames(sam_dat))-1))
 asv_sam<-merge(otu_m,sam_dat[,c("sample","cluster")],by="row.names")

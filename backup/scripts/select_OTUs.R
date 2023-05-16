@@ -75,7 +75,8 @@ ten_c<-no_clusters[no_clusters>=10]
 length(ten_c)
 
 ## Make list of MOTUs present in at least 10 clusters
-selection<-names(ten_c)
+#selection<-names(ten_c)
+selection<-names(five_c)
 ## Extract these MOTUs from the COSQ table
 COSQ_select<-COSQ[which(row.names(COSQ) %in% selection),]
 ## Check that the right no of MOTUs were extracted
