@@ -1,3 +1,5 @@
+# Remember to activate conda environment "esv"
+
 library("optparse")
 library("stringr")
 library("dplyr")

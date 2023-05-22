@@ -10,20 +10,6 @@ project_name = "COSQ"
 
 gwf = Workflow(defaults={"account": "edna"}) 
 
-# Following workflow_part1, a complete metadata file was produced
-# using the script make_metadata.R. Then, the dataset was cleaned 
-# based on blank controls using clean_up_ASV_wise.R, and by removing
-# sequences found in a single PCR replicate with no_sing_ASV_wise.R.
-# The cleaned OTU table was then merged with the taxonomy from the
-# output file of MJOLNIR (COSQ_final_dataset) using merge_otu_table_w_classified.
-# The taxonomic identifications were then manually checked for sequences
-# with hits of 97% similarity or more. Finally, OTUs that could be 
-# confidently identified to marine species, contained at least 2 ASVs
-# and were found in at least 10 clusters were selected using select_OTUs.R
-# These 143 OTUs were then cleaned with DnoisE with the current workflow.
-# After this workflow, Script2.1_DnoisE_ESV_230310.r was used to further filter
-# OTUs and remove NUMTs
-
 # Generate a .tab file for each MOTU with all sample information
 
 motus_dir = "tmp/motus"
@@ -48,7 +34,7 @@ for i in range(0,len(read)):
                 outputs=[output_file,log_file],
                 cores=CORES,
                 memory="12g",
-                walltime="12:00:00",
+                walltime="36:00:00",
             ) << """
                 mkdir -p {motus_tab_dir}
                 # parallelization with parsed outputs, option -k orders the outputs the same way as the inputs
