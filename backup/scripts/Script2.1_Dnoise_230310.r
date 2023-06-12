@@ -76,6 +76,15 @@ seq_data <- ASV_data_initial$sequence
 
 merged_data <- cbind(initial_data, read_data, seq_data)
 
+# Make column of read counts per ASV
+merged_data$COUNT <- rowSums(merged_data[,colnames(read_data)])
+
+# Remove any ASVs with no reads
+merged_data <- merged_data[merged_data$COUNT > 0,]
+
+# Count no. of ASVs
+nrow(merged_data)
+
 #rm(ASV_data_initial, initial_data, seq_data)
 
 #####
@@ -107,11 +116,14 @@ relabund_changed <- data.frame(ASV_id_modified = rownames(change_matrix[rowSums(
                                }, FUN.VALUE = "string", change_matrix = change_matrix))
 merged_data[,colnames(read_data)][change_matrix] <- 0
 
-merged_data$COUNT <- rowSums(merged_data[,colnames(read_data)])
+merged_data <- merged_data[merged_data$COUNT > 0,]
+
+# Count no. of ASVs
+nrow(merged_data)
 
 min_reads <- 5
 
-message("RAGNAROC is removing MOTUs with less than ",min_reads," total reads.")
+message("RAGNAROC is removing ASVs with less than ",min_reads," total reads.")
 merged_data <- merged_data[merged_data$COUNT >= min_reads,]
 
 # remove numts

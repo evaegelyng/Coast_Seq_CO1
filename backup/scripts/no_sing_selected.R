@@ -1,3 +1,5 @@
+# Remember to activate conda environment "esv"
+
 library("phyloseq")
 library("ggplot2")
 library("vegan")
@@ -41,9 +43,9 @@ cat("total_reads_before_singleton_removal")
 sum(sample_sums(dsa))
 cat("\n")
 
-cat("example_sample_with_singleton_COSQ_000031889_2C10EB1_3_before_removal")
+cat("example_sample_with_singleton_COSQ_000030162_2C10EB1_4_before_removal")
 new_otu_mat<-as.matrix(data.frame(otu_table(dsa), check.names=F))
-new_otu_mat["COSQ_000031889","2C10EB1_3"]
+new_otu_mat["COSQ_000030162","2C10EB1_4"]
 sdptre<-data.frame(sample_data(dsa))
 
 for (i in unique(sdptre$root))
@@ -58,11 +60,11 @@ for (i in unique(sdptre$root))
 }
 
 cat("\n")
-cat("example_sample_with_singleton_COSQ_000031889_2C10EB1_3_before_removal")
-new_otu_mat["COSQ_000031889","2C10EB1_3"]
+cat("example_sample_with_singleton__COSQ_000030162_2C10EB1_4_before_removal")
+new_otu_mat["COSQ_000030162","2C10EB1_4"]
 
-otu_table(p_tre)<-otu_table(new_otu_mat, taxa_are_rows = TRUE)
-tre = filter_taxa(p_tre, function(x) sum(x) > 0, TRUE)
+otu_table(dsa)<-otu_table(new_otu_mat, taxa_are_rows = TRUE)
+tre = filter_taxa(dsa, function(x) sum(x) > 0, TRUE)
 tsa = prune_samples(sample_sums(tre)>0,tre)
 
 cat("\n")
