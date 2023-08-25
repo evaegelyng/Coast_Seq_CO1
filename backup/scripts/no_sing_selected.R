@@ -10,6 +10,8 @@ library("stringr")
 
 #Load table
 otu_tab<-read.table("results/COSQ_final_ASV.tsv", sep="\t", header=T, check.names=F)
+#Count no. of MOTUs before filtering
+length(unique(otu_tab$motu))
 
 #Set row names to ASV ID
 row.names(otu_tab)<-otu_tab$id
@@ -80,3 +82,7 @@ write.table(shablaw, "results/no_sing_ASV.txt", sep="\t", quote=FALSE, row.names
 
 write.table(data.frame(sample_data(tsa)), "results/metadata/no_sing_ASV_metadata.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
+# Count no. of remaining MOTUs
+no.sing<-data.frame(otu_table(tsa), check.names=F)
+no.sing$motu<-otu_tab$motu[match(row.names(no.sing),otu_tab$id)]
+length(unique(no.sing$motu))

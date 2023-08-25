@@ -137,7 +137,11 @@ lengths <- nchar(as.vector(merged_data$seq_data))
 no_numts_data <- c()
 numts_seqs <- c()
 
+# Count no. or remaining reads
+sum(merged_data$count)
+# Determine no. of remaining MOTUs
 number_of_motus <- length(unique(merged_data$motu))
+number_of_motus
 
 cores <- 1
 numts_ASV <- parallel::mclapply(1:number_of_motus,function(i,merged_data,motu_taxa){

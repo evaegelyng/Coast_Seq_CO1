@@ -19,8 +19,16 @@ COSQ_all <- read.table("NEW_pident97_data.txt", sep="\t", header=T, row.names=1,
 COSQ_marine<-COSQ_all[which(COSQ_all$final.id!="NA" & COSQ_all$Marine=="Yes"),]
 ### Remove sequences not identified to species level
 COSQ_species<-COSQ_marine %>% filter(!str_detect(final.id, 'COSQ'))
+### Count number of ASVs
+sum(COSQ_species$cluster_weight)
+### Count number of reads
+sum(COSQ_species$total_reads)
 ### Subset further to MOTUS with at least 2 ASVs
 COSQ<-COSQ_species[which(as.numeric(COSQ_species$cluster_weight)>=2),]
+### Count number of ASVs
+sum(COSQ$cluster_weight)
+### Count number of reads
+sum(COSQ$total_reads)
 
 ## Create OTU table
 ### First check where the first sample column is
@@ -74,14 +82,17 @@ length(five_c)
 ten_c<-no_clusters[no_clusters>=10]
 length(ten_c)
 
-## Make list of MOTUs present in at least 10 clusters
-#selection<-names(ten_c)
+## Make list of MOTUs present in at least five clusters
 selection<-names(five_c)
 ## Extract these MOTUs from the COSQ table
 COSQ_select<-COSQ[which(row.names(COSQ) %in% selection),]
 ## Check that the right no of MOTUs were extracted
 length(selection)
 nrow(COSQ_select)
+### Count number of ASVs
+sum(COSQ_select$cluster_weight)
+### Count number of reads
+sum(COSQ_select$total_reads)
 ## Write subsetted table to file
 COSQ_select$id<-row.names(COSQ_select)
 write(COSQ_select$id,"COSQ_pident_97_selected.txt")

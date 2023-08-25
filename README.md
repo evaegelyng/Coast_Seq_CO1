@@ -15,6 +15,6 @@ The taxonomic identifications were then manually checked for sequences with hits
 To get ASV level results, OTUs that could be confidently identified to marine species, contained at least 2 ASVs and were found in at least 10 clusters were selected using select_OTUs.R. Then, continued with workflow.py, followed by:
 
 1. asv.sh # The denoised MOTU files were combined  
-2. Script2.1_DnoisE_ESV_230310.r # Further filter OTUs and remove NUMTs
+2. Script2.1_DnoisE_230310.r # Further filter OTUs and remove NUMTs
 3. no_sing_selected.R # Remove sequences found in a single PCR replicate
 4. normalize_ASV.r # Rarefy reads to normalize sequencing depth across samples

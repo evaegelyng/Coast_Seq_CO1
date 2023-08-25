@@ -943,3 +943,9 @@ cat("\n")
 p_DADAwangt
 cat("total_reads_after_cleanup")
 sum(sample_sums(p_DADAwangt))
+
+## Count number of ASVs after cleaning
+final<-read.table("COSQ_final_dataset.tsv", sep="\t", header=T, check.names=F)
+otu_mat<-as.data.frame(otu_matt)
+otu_mat$asvs<-final$cluster_weight[match(row.names(otu_mat),final$id)]
+sum(otu_mat$asvs)

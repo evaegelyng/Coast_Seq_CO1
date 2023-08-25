@@ -191,6 +191,12 @@ gwf.target(
             Rscript ../scripts/odin_220224.r ../tmp/{project_name} {project_name}
         """.format(project_name=project_name) 
 
+# Count number of reads per MOTU
+#grep "^>" results/COSQ_SWARM_seeds.fasta | cut -d " " -f2 > results/COSQ_SWARM_seeds.counts
+#sed -i 's/size=//g' results/COSQ_SWARM_seeds.counts
+#sed -i 's/\;//g' results/COSQ_SWARM_seeds.counts
+#sort -n -S 50% --parallel=1  results/COSQ_SWARM_seeds.counts | uniq -c > results/COSQ_SWARM_seeds.counts.occurences.txt
+
 # Create a file per MOTU with all sequences that clustered into. 
 
 input_file = "results/{}_SWARM_output".format(project_name)

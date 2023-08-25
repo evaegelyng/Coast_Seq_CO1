@@ -75,3 +75,8 @@ write.table(shablaw, "no_sing_cleaned_otu_table_ASV_wise.txt", sep="\t", quote=F
 
 write.table(data.frame(sample_data(tsa)), "metadata/no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
+## Count number of ASVs after cleaning
+final<-read.table("COSQ_final_dataset.tsv", sep="\t", header=T, check.names=F)
+otu_mat<-read.table("no_sing_cleaned_otu_table_ASV_wise.txt", sep="\t", header=T, check.names=F)
+otu_mat$asvs<-final$cluster_weight[match(row.names(otu_mat),final$id)]
+sum(otu_mat$asvs)
