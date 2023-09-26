@@ -65,10 +65,9 @@ sample_data(DT1)<-d[,c("sshc","sch","cluster","season","habitat","coast_shape")]
 # Normalize by rarefying
 #DT1.1<-rarefy_even_depth(DT1,sample.size = min(sample_sums(DT1)), 
 #        trimOTUs = TRUE, verbose = TRUE, replace=FALSE, rngseed= 13072021)
-# This removed 4524 OTUs! Could use median as rarefaction threshold as 
-# was done at PCR rep level and field replicate level. But perhaps
-# it is sufficient that the data has been normalized at the field
-# replicate level?
+# This removed 4524 OTUs! Even when using median depth as rarefaction threshold,
+# more than half the OTUs are lost. Perhaps it is sufficient that the data has 
+# been normalized at the field replicate level?
 
 #merge at phylum level. NB! Class was used for 16S! But class has NA values here
 DT1.2<-tax_glom(DT1, taxrank="phylum")
@@ -324,6 +323,8 @@ gd<-gelman.diag(mpost$Beta, multivariate=T)
 WAIC2
 
 #Explanatory power
+#For Poisson models, a pseudo-R2 is computed as squared spearman correlation between observed and
+# predicted values, times the sign of the correlation (SR2).
 mean(MF$SR2)
 sd(MF$SR2)
 
