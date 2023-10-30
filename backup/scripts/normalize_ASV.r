@@ -35,12 +35,30 @@ COSQ_no_eel<-subset_samples(COSQ_no_eel,!habitat=="EW")
 COSQ_no_eel = filter_taxa(COSQ_no_eel, function(x) sum(x) > 0, TRUE)
 COSQ_no_eel
 
+#Count total remaining reads
+no.eel<-data.frame(otu_table(COSQ_no_eel), check.names=F)
+sum(rowSums(no.eel))
+
+#Count no. of remaining MOTUs
+#Load reference table
+otu_tab<-read.table("results/COSQ_final_ASV.tsv", sep="\t", header=T, check.names=F)
+no.eel$motu<-otu_tab$motu[match(row.names(no.eel),otu_tab$id)]
+length(unique(no.eel$motu))
+
 ## Remove cluster 2 (which was only sampled in 1 season), and
 COSQ_no_c2<-subset_samples(COSQ_no_eel,!cluster==2)
 
 # Remove ASVs that are no longer represented in any samples
 COSQ_no_c2 = filter_taxa(COSQ_no_c2, function(x) sum(x) > 0, TRUE)
 COSQ_no_c2
+
+#Count total remaining reads
+no.c2<-data.frame(otu_table(COSQ_no_c2), check.names=F)
+sum(rowSums(no.c2))
+
+#Count no. of remaining MOTUs
+no.c2$motu<-otu_tab$motu[match(row.names(no.c2),otu_tab$id)]
+length(unique(no.c2$motu))
 
 # Remove OTUs with only 1 ASV
 # Extract ASV table
@@ -78,6 +96,15 @@ samples = sample_data(meta)
 
 ## Combine metadata and OTU table into one experiment-level phyloseq object
 COSQ_final <- phyloseq(ASV,samples) 
+COSQ_final
+
+#Count total remaining reads
+no.sing<-data.frame(otu_table(COSQ_final), check.names=F)
+sum(rowSums(no.sing))
+
+#Count no. of remaining MOTUs
+no.sing$motu<-otu_tab$motu[match(row.names(no.sing),otu_tab$id)]
+length(unique(no.sing$motu))
 
 ### Remove the nearly-empty samples (lowest 5%)
 quantile(sample_sums(COSQ_final),probs=c(0.005,0.01,0.02,0.05))
@@ -86,6 +113,14 @@ COSQ_final<-prune_samples(sample_sums(COSQ_final)>80, COSQ_final)
 #Remove ASVs that are no longer represented in any samples
 COSQ_final = filter_taxa(COSQ_final, function(x) sum(x) > 0, TRUE)
 COSQ_final
+
+#Count total remaining reads
+no.low<-data.frame(otu_table(COSQ_final), check.names=F)
+sum(rowSums(no.low))
+
+#Count no. of remaining MOTUs
+no.low$motu<-otu_tab$motu[match(row.names(no.low),otu_tab$id)]
+length(unique(no.low$motu))
 
 ## Rarefy PCR replicates to median depth, keeping replicates with lower depth
 
@@ -126,6 +161,10 @@ COSQ_rare
 min(sample_sums(COSQ_rare))
 max(sample_sums(COSQ_rare))
 
+#Count total remaining reads
+rare.tab<-data.frame(otu_table(COSQ_rare), check.names=F)
+sum(rowSums(rare.tab))
+
 ## Rarefy samples to median read depth
 ### First, merge PCR replicates from the same field sample
 merged = merge_samples(COSQ_rare, "root")
@@ -150,10 +189,15 @@ sample_data(merged)<-d[,c("root","cluster","season","habitat","substrate_type","
 ### Remove the nearly-empty samples (lowest 5%)
 quantile(sample_sums(merged),probs=c(0.005,0.01,0.02,0.05))
 merged<-prune_samples(sample_sums(merged)>597, merged)
+merged
 
 #Check read depths per sample before rarefaction
 min(sample_sums(merged))
 max(sample_sums(merged))
+
+#Count total remaining reads
+no.low2<-data.frame(otu_table(merged), check.names=F)
+sum(rowSums(no.low2))
 
 ### Make a table with a column indicating which samples have a read depth above the median
 reads<-sample_sums(merged)
@@ -183,6 +227,15 @@ COSQ_rare2
 #Check read depths per sample after rarefaction
 min(sample_sums(COSQ_rare2))
 max(sample_sums(COSQ_rare2))
+
+#Count total remaining reads
+rare.tab2<-data.frame(otu_table(COSQ_rare2), check.names=F)
+sum(rowSums(rare.tab2))
+
+#Count no. of remaining MOTUs
+rare.tab2.t<-as.data.frame(t(rare.tab2))
+rare.tab2.t$motu<-otu_tab$motu[match(row.names(rare.tab2.t),otu_tab$id)]
+length(unique(rare.tab2.t$motu))
 
 ## Save final file
 saveRDS(COSQ_rare2,"results/COSQ_rare2_ASV_230612.rds")
