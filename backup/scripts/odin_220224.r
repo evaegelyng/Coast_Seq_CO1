@@ -23,8 +23,6 @@ cores <- 32
 ## ODIN deprecates the previous owi_recount_swarm script used in old metabarcoding pipelines (e.g. Project Metabarpark 2015).
 ## By Owen S. Wangensteen
 
-## Eva Sigsgaard: Change the path to dnoise executable and the dnoise options (remove/correct old (?) options, and add modal length of 313 bp and parallel computing). Move singleton removal to separate workflow target. 
-
 mjolnir4_ODIN_eva <- 
 function(lib,cores,d=13,min_reads_MOTU=2,min_reads_ESV=2,run_swarm=TRUE,generate_ESV=FALSE,obipath=""){
 

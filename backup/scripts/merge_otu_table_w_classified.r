@@ -14,4 +14,4 @@ tax_otu<-merge(tax_mat,otu_mat,by="row.names")
 
 #Rename sequence ID column
 names(tax_otu)[1]<-"id"
-write.table(tax_otu,"COSQ_final_dataset_cleaned.tsv",sep="\t",row.names=F)
+write.table(tax_otu,"COSQ_final_dataset_cleaned_pident70.tsv",sep="\t",row.names=F)

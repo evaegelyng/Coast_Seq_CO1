@@ -4,49 +4,76 @@
 ## Load packages
 library(phyloseq)
 library(tibble)
-library(dplyr)
 library(plyr)
+library(dplyr)
 library(scales)
 library(ggplot2)
 library(stringr)
 library(vegan)
 
-## Loading metadata:
-samples_df <- read.table("metadata/no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt", sep="\t", header=T, row.names=1)
-## Construct phyloseq metadata table
-samples=sample_data(samples_df)
+###Load OTU table incl. taxonomy
+pident70<-read.table("COSQ_final_dataset_cleaned_pident_70.tsv",sep="\t", header=T, check.names=F)
 
-## Loading final table incl. taxonomy and OTU table
-COSQ <- read.table("pident97_data1.txt", sep="\t", header=T, row.names=1,check.names=F)
-
-## Create OTU table
-### First check where the first sample column is
-COSQ[1,1:35]
+## Find first sample column
+pident70[1:2,28:30] # column 29
 ### Check that the last column is a sample column
-n<-ncol(COSQ)
-COSQ[1,(n-1):n]
+n<-ncol(pident70)
+pident70[1,(n-1):n] 
 ### Extract all sample columns
-COSQ_otu <- COSQ[,35:n] 
-### Transform to a matrix
-COSQ_otu_m <- as.matrix(COSQ_otu) 
-### Construct phyloseq OTU table
-OTU = otu_table(COSQ_otu_m,taxa_are_rows=TRUE) 
+otu_table <- pident70[,29:n] 
 
-## Create Taxonomy table
-### Extract relevant columns from the COSQ table. Notes: Cols8-14 = taxonomy, Col26 = score.id
-COSQ_tax <- COSQ[,c(6:12,27)] 
+## Count no. of ASVs before removing non-marine classes
+nrow(otu_table) # 7411
+## Count no. of reads before removing non-marine classes
+sum(colSums(otu_table)) # 102,678,511
+
+## Load table of marine/non-marine classes
+env<-read.table("18S_and_COI_classes_environment.txt",sep="\t", header=T, check.names=F)
+## Check if any classes have not been assigned to marine/non-marine
+pident70_na <- pident70[!pident70$class %in% env$class,]
+unique(pident70_na$class) # NA
+
+## Remove non-marine classes
+pident70_mar <- pident70[pident70$class %in% env$class[env$marine=="yes"],]
+
+### Extract all sample columns
+otu_tab_mar <- within(pident70_mar,rm(marine)) 
+otu_tab_mar <- otu_tab_mar[,29:n] 
+
+## Count no. of ASVs after removing non-marine classes
+nrow(otu_tab_mar) # 4078
+## Count no. of reads after removing non-marine classes
+sum(colSums(otu_tab_mar)) # 89,590,823
+
+###Convert to matrix for phyloseq
+otu_mat<-as.matrix(otu_tab_mar)
+
+###Summarize no. of reads per PCR replicate
+reads<-colSums(otu_mat)
+mean(reads) # 24338.72
+sd(reads) # 36650.16
+
+### Extract taxonomy columns from the OTU table incl. taxonomy
+tax_tab <- pident70_mar[,c("kingdom","phylum","class","order","family","genus","species","score.id")] 
+# Checking that all relevant columns were included
+tax_tab[1,] 
 ### Transform to a matrix
-COSQ_tax_m <- as.matrix(COSQ_tax) 
-### Construct phyloseq taxonomy table
-TAX = tax_table(COSQ_tax_m)
+tax_mat <- as.matrix(tax_tab) 
+
+#Load metadata file, containing cluster names:
+metadata <- read.table("metadata/no_control_no_sing_samples_cleaned_metadata_ASV_wise.txt")
 
 ## Combine metadata, OTU sample and taxonomy into one experiment-level phyloseq object
+OTU = otu_table(otu_mat, taxa_are_rows = TRUE)
+TAX = tax_table(tax_mat)
+samples = sample_data(metadata)
+
 COSQ_final <- phyloseq(OTU,TAX,samples) 
 COSQ_final
 
 ## Rarefy PCR replicates to median depth, keeping replicates with lower depth
 ### Remove PCR replicates with zero reads
-COSQ_final<-prune_samples(sample_sums(COSQ_final)>0, COSQ_final)
+COSQ_final<-prune_samples(sample_sums(COSQ_final)>0, COSQ_final) # No reps removed
 
 ### Make a table with a column indicating which PCR replicates have a read depth above the median
 readsi<-sample_sums(COSQ_final)
@@ -67,6 +94,9 @@ sample_data(COSQ_final)$over_median<-combinedi$q[match(sample_data(COSQ_final)$s
 ### Extract and then rarefy the PCR replicates with a read depth above the median
 above_t<-rarefy_even_depth(subset_samples(COSQ_final, over_median==TRUE), sample.size=as.numeric(threshold), replace=FALSE, trimOTUs = TRUE, rngseed= 13072021)
 
+# 1129OTUs were removed because they are no longer 
+# present in any sample after random subsampling
+
 ### Extract the PCR replicates with a read depth at or below the median
 below_t<-subset_samples(COSQ_final, over_median==FALSE)
 
@@ -79,10 +109,10 @@ COSQ_rare
 
 ## Rarefy samples to median read depth
 ### First, merge PCR replicates from the same field sample
-merged = merge_samples(COSQ_rare, "root")
+merged = merge_samples(COSQ_rare, "sample_root")
 
 ## Rebuild sample data, as the merge_samples function only handles merging of the OTU table
-d<-data.frame(sample_data(merged)[,c("root","cluster","season","habitat","substrate_type","field_replicate")])
+d<-data.frame(sample_data(merged)[,c("sample_root","cluster","season","habitat","substrate_type","field_replicate")])
 
 d$po<- sapply(strsplit(as.character(rownames(d)), "2C"), tail, 1)
 d$pn<-gsub('\\d','', d$po)
@@ -90,12 +120,12 @@ d$pn1<-gsub(".*C(.+).*", "\\1", d$pn)
 d$habitat<-ifelse(d$pn1=="EW"|d$pn1=="EB", "eelgrass", ifelse(d$pn1=="RW"|d$pn1=="RB", "rocks", "sand"))
 d$substrate_type<-ifelse(grepl("B", d$pn1, fixed=T), "sediment", "water")
 d$season<-ifelse(grepl("2C", as.character(rownames(d)), fixed=T), "autumn", "spring")
-d$root<-rownames(d)
-d$pn<-gsub('\\D','_', d$root)
+d$sample_root<-rownames(d)
+d$pn<-gsub('\\D','_', d$sample_root)
 d$pn2<-gsub(".*_(.+)__.*", "\\1", d$pn)
 d$cluster<-as.integer(d$pn2)
 
-sample_data(merged)<-d[,c("root","cluster","season","habitat","substrate_type","field_replicate")]
+sample_data(merged)<-d[,c("sample_root","cluster","season","habitat","substrate_type","field_replicate")]
 
 ### Make a table with a column indicating which samples have a read depth above the median
 reads<-sample_sums(merged)
@@ -105,10 +135,12 @@ thres<-round(median(combined$reads))
 combined$q<-combined$reads>thres
 
 ### Transfer the column generated above to the phyloseq object
-sample_data(merged)$over_median<-combined$q[match(sample_data(merged)$root, combined$root)]
+sample_data(merged)$over_median<-combined$q[match(sample_data(merged)$sample_root, combined$sample_root)]
 
 ### Extract and then rarefy the samples with a read depth above the median
 above_t<-rarefy_even_depth(subset_samples(merged, over_median==TRUE), sample.size=as.numeric(thres), replace=FALSE, trimOTUs = TRUE, rngseed= 13072021)
+
+#1396OTUs were removed
 
 ### Extract the samples with a read depth at or below the median
 below_t<-subset_samples(merged, over_median==FALSE)
@@ -127,7 +159,7 @@ COSQ_rare2
 tax_m<-data.frame(tax_table(COSQ_rare2))
 otu_m<-data.frame(otu_table(COSQ_rare2),check.names=F)
 
-write.table(data.frame(sample_data(COSQ_rare2), check.names=F), "metadata/metadata_rarefy.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(data.frame(sample_data(COSQ_rare2), check.names=F), "metadata/metadata_rarefy_70.txt", sep="\t", quote=FALSE, row.names=TRUE)
 
-write.table(otu_m, "otu_rarefy.txt", sep="\t", quote=FALSE, row.names=TRUE)
-write.table(tax_m, "tax_rarefy.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(otu_m, "otu_rarefy_70.txt", sep="\t", quote=FALSE, row.names=TRUE)
+write.table(tax_m, "tax_rarefy_70.txt", sep="\t", quote=FALSE, row.names=TRUE)

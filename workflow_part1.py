@@ -324,7 +324,7 @@ gwf.target(
             mv results_entropy_values.csv results
         """.format(project_name=project_name, DnoisE_dir=DnoisE_dir, vsearch_file=vsearch_file, output_dir=output_dir)
 
-###Split fasta file (the nochim one with chimeras removed) into K parts
+###Split fasta file into K parts
 #NB! Should add removal of old index file, as this seems to not be overwritten
 def splitter(inputFile, K=99):
     inputs = [inputFile]

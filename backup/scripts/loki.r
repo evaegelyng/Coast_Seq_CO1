@@ -72,5 +72,5 @@ mjolnir7_LOKI <- function(lib,min_id = .84){
   message("LOKI stored the fate of the discarded MOTUs in file: ",paste0(lib,"_Deleted_LULU_fate.tsv"))
 }
 
-# LOKI kill remove the pseudogenes and will keep track of the taxonomic information of the removed MOTUs
+# LOKI will remove the pseudogenes and will keep track of the taxonomic information of the removed MOTUs
 mjolnir7_LOKI(lib,min_id=.84)
