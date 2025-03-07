@@ -4,6 +4,7 @@
 ## Load packages
 library(phyloseq)
 library(plyr)
+library(dplyr)
 library(ggplot2)
 
 ###Load OTU table incl. taxonomy
@@ -34,9 +35,19 @@ otu_phy_class <- tax_phy_class[,29:n]
 ## Count no. of reads
 sum(colSums(otu_phy_class)) # 102,641,046
 
-## Extract only phylum and class columns 
-tax_phy_class<-tax_phy_class[,c("phylum","class")]
-phy_class_uniq<-unique(tax_phy_class)
+## Count no. of reads per MOTU
+tax_phy_class$total_reads<-rowSums(tax_phy_class[,29:n])
+## Determine MOTU with most reads per class
+tax_otu_top_max <- tax_phy_class %>%
+  group_by(class) %>%
+  mutate(top_MOTU_class = score.id[which.max(total_reads)],
+        pident_max_class = pident.max.best[which.max(pident.max.best)],
+        total_reads_class = sum(total_reads)) %>%
+  ungroup()
+
+## Extract only phylum, class, top MOTU per class and max similarity per class
+tax_otu_top_max<-tax_otu_top_max[,c("phylum","class","top_MOTU_class","pident_max_class","total_reads_class")]
+phy_class_uniq<-unique(tax_otu_top_max)
 ## Export taxonomy table for curation of names and manual assignment as marine/non-marine
 write.table(phy_class_uniq, "COSQ_pident70_phy_class.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 ## Import manually curated table
@@ -46,11 +57,11 @@ tax_env<-read.table("COSQ_pident70_phy_class_curated.txt",sep="\t", header=T)
 pident70_mar <- pident70[!pident70$class %in% tax_env$class[tax_env$marine=="no"],]
 ## Count no. of ASVs after removing non-marine classes
 sum(pident70_mar$cluster_weight) # 529,847
-## Export combined OTU and taxonomy table
-write.table(pident70_mar, "COSQ_final_dataset_cleaned_pident_70_marine.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 
 ### Extract all sample columns
-otu_tab_mar <- pident70_mar[,29:n] 
+otu_tab_mar <- pident70_mar[,c(1,29:n)] 
+row.names(otu_tab_mar)<-otu_tab_mar$id
+otu_tab_mar<-otu_tab_mar[,-1]
 
 ## Count no. of MOTUs after removing non-marine classes
 nrow(otu_tab_mar) # 4064
@@ -65,10 +76,14 @@ reads<-colSums(otu_mat)
 mean(reads) # 24324.94
 sd(reads) # 36650.83
 
-### Extract taxonomy columns from the OTU table
-tax_tab <- pident70_mar[,c("kingdom","phylum","class","order","family","genus","species","score.id")] 
-# Checking that all relevant columns were included
+## Extract taxonomy columns from the OTU table
+tax_tab <- pident70_mar[,1:28] 
+### Checking that all relevant columns were included
 tax_tab[1,] 
+### Add rownames
+row.names(tax_tab)<-tax_tab$id
+tax_tab<-tax_tab[,-1]
+
 ### Transform to a matrix
 tax_mat <- as.matrix(tax_tab) 
 
@@ -86,7 +101,7 @@ sampledata = sample_data(data.frame(metadata, row.names=metadata$sample_ID, stri
 OTU = otu_table(otu_mat, taxa_are_rows = TRUE)
 TAX = tax_table(tax_mat)
 
-COSQ_final <- phyloseq(OTU,TAX,samples) 
+COSQ_final <- phyloseq(OTU,TAX,sampledata) 
 COSQ_final
 
 ## Rarefy PCR replicates to median depth, keeping replicates with lower depth
@@ -125,6 +140,7 @@ COSQ_rare
 ## Rarefy samples to median read depth
 ### First, merge PCR replicates from the same field sample
 merged = merge_samples(COSQ_rare, "root")
+merged
 
 ## Rebuild sample data, as the merge_samples function only handles merging of the OTU table
 d<-data.frame(sample_data(merged)[,c("root","cluster","season","habitat","substrate_type","field_replicate")])
@@ -169,6 +185,13 @@ COSQ_rare2
 
 ## Save final files
 tax_m<-data.frame(tax_table(COSQ_rare2))
+
+### Add curated taxonomy
+tax_env$phylum_class<-paste(tax_env$phylum, tax_env$class, sep="_")
+tax_m$phylum_class<-paste(tax_m$phylum, tax_m$class, sep="_")
+tax_m$new_phylum<-tax_env$new_phylum[match(tax_m$phylum_class, tax_env$phylum_class)]
+tax_m$new_class<-tax_env$new_class[match(tax_m$phylum_class, tax_env$phylum_class)]
+
 otu_m<-data.frame(otu_table(COSQ_rare2),check.names=F)
 
 write.table(data.frame(sample_data(COSQ_rare2), check.names=F), "metadata/metadata_rarefy_70.txt", sep="\t", quote=FALSE, row.names=TRUE)

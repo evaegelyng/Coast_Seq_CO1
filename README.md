@@ -7,7 +7,7 @@ After running workflow_part1.py, the following R scripts were run:
 2. clean_up_OTU_wise.r # Clean the dataset based on blank controls
 3. no_sing_OTU_wise.r # Remove sequences found in a single PCR replicate
 4. merge_otu_table_w_classified.r # The cleaned OTU table is then merged with the taxonomy from the output file of MJOLNIR (COSQ_final_dataset)
-5. normalize.r # Rarefy reads to normalize sequencing depth across samples
+5. normalize_250303.r # Rarefy reads to normalize sequencing depth across samples
 
 The complete dataset was then downloaded and the remaining analysis was run locally (see "local_scripts" folder). The subset of sequences with hits of 97% similarity or more, was manually curated and then normalized
 
