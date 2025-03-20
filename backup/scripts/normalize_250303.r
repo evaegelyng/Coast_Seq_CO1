@@ -54,9 +54,9 @@ write.table(phy_class_uniq, "COSQ_pident70_phy_class.tsv", sep="\t", quote=FALSE
 tax_env<-read.table("COSQ_pident70_phy_class_curated.txt",sep="\t", header=T)
 
 ## Remove non-marine classes
-pident70_mar <- pident70[!pident70$class %in% tax_env$class[tax_env$marine=="no"],]
+pident70_mar <- pident70[!pident70$class %in% tax_env$class[tax_env$possibly_marine=="no"],]
 ## Count no. of ASVs after removing non-marine classes
-sum(pident70_mar$cluster_weight) # 529,847
+sum(pident70_mar$cluster_weight) # 603,910
 
 ### Extract all sample columns
 otu_tab_mar <- pident70_mar[,c(1,29:n)] 
@@ -64,17 +64,17 @@ row.names(otu_tab_mar)<-otu_tab_mar$id
 otu_tab_mar<-otu_tab_mar[,-1]
 
 ## Count no. of MOTUs after removing non-marine classes
-nrow(otu_tab_mar) # 4064
+nrow(otu_tab_mar) # 6534
 ## Count no. of reads after removing non-marine classes
-sum(colSums(otu_tab_mar)) # 89,540,094
+sum(colSums(otu_tab_mar)) # 99,540,639
 
 ###Convert to matrix for phyloseq
 otu_mat<-as.matrix(otu_tab_mar)
 
 ###Summarize no. of reads per PCR replicate
 reads<-colSums(otu_mat)
-mean(reads) # 24324.94
-sd(reads) # 36650.83
+mean(reads) # 27041.74
+sd(reads) # 38270.46
 
 ## Extract taxonomy columns from the OTU table
 tax_tab <- pident70_mar[,1:28] 
@@ -181,7 +181,7 @@ COSQ_merge2<-merge_phyloseq(above_t, below_t)
 COSQ_rare2 = filter_taxa(COSQ_merge2, function(x) sum(x) > 0, TRUE)
 
 ### Check how many OTUs are left
-COSQ_rare2
+COSQ_rare2 # 6436 OTUs
 
 ## Save final files
 tax_m<-data.frame(tax_table(COSQ_rare2))
