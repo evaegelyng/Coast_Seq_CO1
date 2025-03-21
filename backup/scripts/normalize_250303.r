@@ -23,18 +23,10 @@ nrow(otu_table) # 7411
 ## Count no. of reads
 sum(colSums(otu_table)) # 102,678,511
 
-# Removing taxa that contain NA in both phylum and class
+# Prepare taxonomic table for manual curation
+
+## Removing taxa that contain NA in both phylum and class
 tax_phy_class<-subset(pident70, !(is.na(pident70$phylum)&is.na(pident70$class)))
-## Count no. of MOTUs after filtering
-nrow(tax_phy_class) # 7379
-## Count no. of ASVs after filtering
-sum(tax_phy_class$cluster_weight) # 644,459
-
-### Extract all sample columns
-otu_phy_class <- tax_phy_class[,29:n] 
-## Count no. of reads
-sum(colSums(otu_phy_class)) # 102,641,046
-
 ## Count no. of reads per MOTU
 tax_phy_class$total_reads<-rowSums(tax_phy_class[,29:n])
 ## Determine MOTU with most reads per class
