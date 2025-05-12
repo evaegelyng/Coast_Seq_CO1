@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH --partition normal
+#SBATCH --account edna
 #SBATCH --mem-per-cpu 8G
 #SBATCH -c 1
 #SBATCH -t 04:00:00
 
 input_dir="tmp/output_Ad_corr"
 output_dir="tmp"
-MOTUS2RUN="results/COSQ_pident_97_selected.txt"
+MOTUS2RUN="results/COSQ_pident_97_selected_250505.txt"
 lines=$(wc -l ${MOTUS2RUN} | cut -f1 -d ' ')
 
 for i in $(seq 1 ${lines})

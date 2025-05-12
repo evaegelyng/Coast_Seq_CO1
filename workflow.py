@@ -14,13 +14,13 @@ gwf = Workflow(defaults={"account": "edna"})
 
 motus_dir = "tmp/motus"
 motus_tab_dir="tmp/motu_tab"
-selected_motus="results/{}_pident_97_selected.txt".format(project_name)
+selected_motus="results/{}_pident_97_selected_250505.txt".format(project_name)
 
 with open(selected_motus, 'r') as fp:
     read = fp.readlines() 
     lines = len(read)
 
-CORES=32
+CORES=16
 
 for i in range(0,len(read)):
     motu = read[i].strip()
@@ -33,8 +33,8 @@ for i in range(0,len(read)):
                 inputs=input_file,
                 outputs=[output_file,log_file],
                 cores=CORES,
-                memory="12g",
-                walltime="36:00:00",
+                memory="32g",
+                walltime="48:00:00",
             ) << """
                 mkdir -p {motus_tab_dir}
                 # parallelization with parsed outputs, option -k orders the outputs the same way as the inputs

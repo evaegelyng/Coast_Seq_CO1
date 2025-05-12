@@ -12,9 +12,9 @@ library(stringr)
 library(vegan)
 
 ## Loading metadata:
-samples_df <- read.table("results/metadata/merged_seq_run_cleaned_metadata_ASV_wise.txt", sep="\t", header=T, row.names=1)
+samples_df <- read.table("results/metadata/no_sing_ASV_metadata.txt", sep="\t", header=T, row.names=1)
 ## Construct phyloseq metadata table
-samples=sample_data(samples_df)
+samples <- sample_data(samples_df)
 
 ## Loading final ASV table
 COSQ <- read.table("results/no_sing_ASV.txt", sep="\t", header=T, row.names=1,check.names=F)
@@ -45,6 +45,9 @@ otu_tab<-read.table("results/COSQ_final_ASV.tsv", sep="\t", header=T, check.name
 no.eel$motu<-otu_tab$motu[match(row.names(no.eel),otu_tab$id)]
 length(unique(no.eel$motu))
 
+#Count no. of remaining ASVs
+nrow(no.eel)
+
 ## Remove cluster 2 (which was only sampled in 1 season), and
 COSQ_no_c2<-subset_samples(COSQ_no_eel,!cluster==2)
 
@@ -60,51 +63,54 @@ sum(rowSums(no.c2))
 no.c2$motu<-otu_tab$motu[match(row.names(no.c2),otu_tab$id)]
 length(unique(no.c2$motu))
 
+#Count no. of remaining ASVs
+nrow(no.c2)
+
 # Remove OTUs with only 1 ASV
 # Extract ASV table
-asv_m<-data.frame(otu_table(COSQ_no_c2),check.names=F)
+#asv_m<-data.frame(otu_table(COSQ_no_c2),check.names=F)
 
 #Extract sample info
-meta<-data.frame(sample_data(COSQ_no_c2), check.names=F)
+#meta<-data.frame(sample_data(COSQ_no_c2), check.names=F)
 
 #Reattach MOTU id for each ASV
-motu<-read.table("results/COSQ_final_ASV.tsv", sep="\t", header=T, check.names=F)
-row.names(motu)<-motu$id
-asv_motu<-merge(asv_m,motu[,c("motu","id")],by="row.names")
-row.names(asv_motu)<-asv_motu$Row.names
+#motu<-read.table("results/COSQ_final_ASV.tsv", sep="\t", header=T, check.names=F)
+#row.names(motu)<-motu$id
+#asv_motu<-merge(asv_m,motu[,c("motu","id")],by="row.names")
+#row.names(asv_motu)<-asv_motu$Row.names
 
 ## Remove ASV id column
-asv_motu=within(asv_motu,rm("id","Row.names"))
+#asv_motu=within(asv_motu,rm("id","Row.names"))
 
 ## Count number of ASVs per MOTU
-asv_count<-asv_motu%>%count(motu)
+#asv_count<-asv_motu%>%count(motu)
 ## Make a list of MOTUs with only one ASV
-one_asv<-asv_count[which(asv_count$n==1),]
+#one_asv<-asv_count[which(asv_count$n==1),]
 ## Count how many MOTUs have only one ASV
-nrow(one_asv)
+#nrow(one_asv)
 ## Remove MOTUs with only one ASV
-asv_min2<-asv_motu[!asv_motu$motu %in% one_asv$motu,]
+#asv_min2<-asv_motu[!asv_motu$motu %in% one_asv$motu,]
 ## Remove motu column
-asv_min2<-within(asv_min2,rm("motu"))
+#asv_min2<-within(asv_min2,rm("motu"))
 
 ## Transform to a matrix
-asv_m <- as.matrix(asv_min2) 
+#asv_m <- as.matrix(asv_min2) 
 
 ### Construct phyloseq OTU table and metadata
-ASV = otu_table(asv_m,taxa_are_rows=TRUE) 
-samples = sample_data(meta)
+#ASV = otu_table(asv_m,taxa_are_rows=TRUE) 
+#samples = sample_data(meta)
 
 ## Combine metadata and OTU table into one experiment-level phyloseq object
-COSQ_final <- phyloseq(ASV,samples) 
-COSQ_final
+#COSQ_final <- phyloseq(ASV,samples) 
+COSQ_final <- COSQ_no_c2
 
 #Count total remaining reads
-no.sing<-data.frame(otu_table(COSQ_final), check.names=F)
-sum(rowSums(no.sing))
+#no.sing<-data.frame(otu_table(COSQ_final), check.names=F)
+#sum(rowSums(no.sing))
 
 #Count no. of remaining MOTUs
-no.sing$motu<-otu_tab$motu[match(row.names(no.sing),otu_tab$id)]
-length(unique(no.sing$motu))
+#no.sing$motu<-otu_tab$motu[match(row.names(no.sing),otu_tab$id)]
+#length(unique(no.sing$motu))
 
 ### Remove the nearly-empty samples (lowest 5%)
 quantile(sample_sums(COSQ_final),probs=c(0.005,0.01,0.02,0.05))
@@ -112,7 +118,7 @@ COSQ_final<-prune_samples(sample_sums(COSQ_final)>80, COSQ_final)
 
 #Remove ASVs that are no longer represented in any samples
 COSQ_final = filter_taxa(COSQ_final, function(x) sum(x) > 0, TRUE)
-COSQ_final
+COSQ_final # 3576 ASVs
 
 #Count total remaining reads
 no.low<-data.frame(otu_table(COSQ_final), check.names=F)
@@ -238,4 +244,4 @@ rare.tab2.t$motu<-otu_tab$motu[match(row.names(rare.tab2.t),otu_tab$id)]
 length(unique(rare.tab2.t$motu))
 
 ## Save final file
-saveRDS(COSQ_rare2,"results/COSQ_rare2_ASV_230612.rds")
+saveRDS(COSQ_rare2,"results/COSQ_rare2_ASV_250512.rds")

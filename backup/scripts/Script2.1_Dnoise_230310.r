@@ -13,9 +13,9 @@ ASV_data_initial <- read.csv("tmp/ASV_Adcorr.csv")
 
 # Load file with MJOLNIR agnomens and corresponding original names
 metadata <- read.table("results/metadata/COSQ_metadata_new.tsv",sep="\t",head=T,stringsAsFactors = F)
-#sample_metadata_sorted <- read.table(metadata2) # this would be for the metadata in an sorted way
+# Load output from LULU (just to get kingdom info)
 original_data <- read.csv("results/COSQ_Curated_LULU.tsv", sep='\t')
-# Are only metazoans used finally? Would like to include other groups as well
+# Make a column indicating whether a MOTU is a metazoan or not
 motu_taxa <- data.frame('id' = original_data$id, 'Metazoa' = c(original_data$kingdom == 'Metazoa' & !is.na(original_data$kingdom)))
 
 print('data loaded')
@@ -51,6 +51,8 @@ n<-ncol(ASV_data_initial)
 ASV_data_initial[1,(n-1):n]
 ### Extract all sample columns
 otu <- ASV_data_initial[,5:(n-1)] 
+## Count no. of reads
+sum(colsums(otu))
 ### Transpose
 otu_t <- t(otu) 
 otu_t <- data.frame(otu_t)

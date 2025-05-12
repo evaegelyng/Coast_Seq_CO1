@@ -86,3 +86,6 @@ write.table(data.frame(sample_data(tsa)), "results/metadata/no_sing_ASV_metadata
 no.sing<-data.frame(otu_table(tsa), check.names=F)
 no.sing$motu<-otu_tab$motu[match(row.names(no.sing),otu_tab$id)]
 length(unique(no.sing$motu))
+
+# Count no. of remaining ASVs
+nrow(no.sing)
